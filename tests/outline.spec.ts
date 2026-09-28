@@ -60,13 +60,13 @@ for (const modifier of ['Control', 'Meta']) {
   }
 }
 
-for (const corner of ['top-left', 'top-right']) {
+for (const corner of ['bottom-left', 'bottom-right']) {
   test(`${corner} outline control performs the same action on every click, including a double-click`, async ({ page }) => {
     const palette = page.getByRole('main');
     const button = page.locator(`.outline-zone-${corner} button`);
     const colorControl = corner.endsWith('right');
     await expect(button).toHaveAccessibleName(colorControl ? /^Change outline color/ : /^Cycle outline mode/);
-    await expect(button).toHaveAttribute('tabindex', corner.startsWith('top') ? '0' : '-1');
+    await expect(button).toHaveAttribute('tabindex', '0');
     await expect(button).toHaveCSS('opacity', '0');
     await button.hover();
     await expect(button).toHaveCSS('opacity', '1');
@@ -84,24 +84,26 @@ for (const corner of ['top-left', 'top-right']) {
   });
 }
 
-test('Tab reaches outline actions, color information, and settings', async ({ page }) => {
+test('Tab reaches top info and settings controls before bottom outline actions', async ({ page }) => {
   const palette = page.getByRole('main');
   await page.getByRole('button', { name: 'Add color at position 6', exact: true }).focus();
   await page.keyboard.press('Tab');
   await expect(page.locator('.outline-zone-top-left button')).toBeFocused();
+  await expect(page.locator('.outline-zone-top-left button')).toHaveAccessibleName('Color information');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.outline-zone-top-right button')).toBeFocused();
+  await expect(page.locator('.outline-zone-top-right button')).toHaveAccessibleName('Settings');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.outline-zone-bottom-left button')).toBeFocused();
   await page.keyboard.press('Enter');
   await page.clock.runFor(400);
   await expect(palette).toHaveAttribute('data-outline', 'outer');
   await page.keyboard.press('Tab');
-  await expect(page.locator('.outline-zone-top-right button')).toBeFocused();
+  await expect(page.locator('.outline-zone-bottom-right button')).toBeFocused();
   await page.keyboard.press('Enter');
   await page.clock.runFor(400);
   await expect(palette).toHaveAttribute('data-outline', 'outer');
   await expect(palette).toHaveCSS('--outline-color', 'black');
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: 'Color information', exact: true })).toBeFocused();
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.locator('.outline-button:focus')).toHaveCount(0);
 });
@@ -142,7 +144,7 @@ test('outside borders shrink the swatch area and dragging uses its inset coordin
   const bounds = await first.boundingBox();
   expect(bounds).toMatchObject({ x: 48, y: 48, height: 804 });
   expect(await last.evaluate(element => Math.round(element.getBoundingClientRect().right))).toBe(1392);
-  expect(await page.locator('.outline-zone-top-left').boundingBox()).toMatchObject({ x: 0, y: 0 });
+  expect(await page.locator('.outline-zone-bottom-left').boundingBox()).toMatchObject({ x: 0, y: 848 });
   await page.mouse.move(10, 200);
   await page.mouse.down();
   await expect(page.locator('.dragged')).toHaveCount(0);
@@ -218,7 +220,7 @@ for (const width of [1440, 1000, 390]) {
     await page.keyboard.press('Delete');
     await expect(page.locator('.swatch')).toHaveCount(5);
     await expectEqualSpacing();
-    await page.locator('.outline-zone-top-right button').click();
+    await page.locator('.outline-zone-bottom-right button').click();
     await page.clock.runFor(400);
     await expect(palette).toHaveCSS('background-color', 'rgb(0, 0, 0)');
     await expectEqualSpacing();
@@ -232,7 +234,7 @@ test('outline edges, gaps, and ink drops transition together between white and b
     await page.clock.runFor(400);
     await expect(palette).toHaveAttribute('data-outline', mode);
     for (const color of ['rgb(0, 0, 0)', 'rgb(255, 255, 255)']) {
-      await page.locator('.outline-zone-top-right button').click();
+      await page.locator('.outline-zone-bottom-right button').click();
       await page.clock.runFor(200);
       const animations = await palette.evaluate(element => [element, ...element.querySelectorAll('.outline-ink')].flatMap(target => target.getAnimations()).filter(animation =>
         animation instanceof CSSTransition && ['background-color', 'border-top-color', 'fill'].includes(animation.transitionProperty)

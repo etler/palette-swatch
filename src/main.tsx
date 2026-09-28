@@ -366,7 +366,22 @@ function App() {
       {rows * columns > palette.length && <div className="empty-swatch" style={{ gridColumn: `span ${rows * columns - palette.length}`, color: outline.color === 'white' ? 'black' : 'white' }}>
         {!drag && editor.kind === 'closed' && <button className="add-color" aria-label="Add color in empty space" onClick={() => add(palette.length)}><Icon name="plus" /></button>}
       </div>}
-      {!drag && editor.kind === 'closed' && ['top-left', 'top-right'].map(corner => {
+      {!drag && editor.kind === 'closed' && <div className="outline-zone outline-zone-top-left">
+        <button className="outline-button" aria-label="Color information" aria-pressed={showInfo} onClick={() => setShowInfo(current => !current)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7h.01" />
+          </svg>
+        </button>
+      </div>}
+      {!drag && (editor.kind === 'closed' || editor.kind === 'settings') && <div className="outline-zone outline-zone-top-right">
+        <button className="outline-button" aria-label="Settings" aria-haspopup="dialog" onClick={() => setEditor({ kind: 'settings' })}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true">
+            <path d="M10 2h4l.6 3 1.5.9 2.9-1 2 3.4-2.3 2v3.4l2.3 2-2 3.4-2.9-1-1.5.9-.6 3h-4l-.6-3-1.5-.9-2.9 1-2-3.4 2.3-2v-3.4L3 8.3l2-3.4 2.9 1 1.5-.9Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+      </div>}
+      {!drag && editor.kind === 'closed' && ['bottom-left', 'bottom-right'].map(corner => {
         const action = corner.endsWith('right') ? 'color' : 'mode';
         return <div key={corner} className={`outline-zone outline-zone-${corner}`}>
           <button className="outline-button" tabIndex={0} aria-label={`${action === 'color' ? 'Change outline color' : 'Cycle outline mode'} (${outline.mode === 'none' ? 'edge to edge' : outline.mode === 'outer' ? 'outside border' : 'swatch borders'}, ${outline.color})`} aria-keyshortcuts={action === 'mode' ? 'Control+Space Meta+Space' : 'Control+Shift+Space Meta+Shift+Space'}
@@ -378,21 +393,6 @@ function App() {
           </button>
         </div>;
       })}
-      {!drag && editor.kind === 'closed' && <div className="outline-zone outline-zone-bottom-left">
-        <button className="outline-button" aria-label="Color information" aria-pressed={showInfo} onClick={() => setShowInfo(current => !current)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7h.01" />
-          </svg>
-        </button>
-      </div>}
-      {!drag && (editor.kind === 'closed' || editor.kind === 'settings') && <div className="outline-zone outline-zone-bottom-right">
-        <button className="outline-button" aria-label="Settings" aria-haspopup="dialog" onClick={() => setEditor({ kind: 'settings' })}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true">
-            <path d="M10 2h4l.6 3 1.5.9 2.9-1 2 3.4-2.3 2v3.4l2.3 2-2 3.4-2.9-1-1.5.9-.6 3h-4l-.6-3-1.5-.9-2.9 1-2-3.4 2.3-2v-3.4L3 8.3l2-3.4 2.9 1 1.5-.9Z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-        </button>
-      </div>}
     </main>
     {editor.kind === 'settings' && <SettingsDialog settings={settings} onCancel={dismiss} onSave={next => { setSettings(next); close(); }} />}
     {(editor.kind === 'color' || editor.kind === 'name') && <Popup key={`${editor.kind}-${editor.swatch.id}`} x={editor.x} label={editor.kind === 'color' ? 'Color picker' : 'Rename color'} onClose={close} onCancel={dismiss}>
