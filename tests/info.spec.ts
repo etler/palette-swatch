@@ -4,7 +4,8 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/#264653#2A9D8F#E9C46A#F4A261#E76F51');
 });
 
-test('the info toggle moves every title up and restores the original layout when hidden', async ({ page }) => {
+test('the info toggle places metadata above the titles and restores the original layout when hidden', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1200 });
   const toggle = page.getByRole('button', { name: 'Color information', exact: true });
   const title = page.getByRole('button', { name: 'Edit Color 1 color 264653' });
   const originalTop = await title.evaluate(element => element.getBoundingClientRect().top);
@@ -12,7 +13,13 @@ test('the info toggle moves every title up and restores the original layout when
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.swatch-info')).toHaveCount(5);
-  expect(await title.evaluate(element => element.getBoundingClientRect().top)).toBeLessThan(originalTop / 2);
+  for (const swatch of await page.locator('.swatch').all()) {
+    const infoBottom = await swatch.locator('.swatch-info').evaluate(element => element.getBoundingClientRect().bottom);
+    const hexTop = await swatch.locator('.hex-button').evaluate(element => element.getBoundingClientRect().top);
+    expect(infoBottom).toBeLessThanOrEqual(hexTop);
+    const lastInfoBottom = await swatch.locator('.swatch-info dd').last().evaluate(element => element.getBoundingClientRect().bottom);
+    expect(hexTop - lastInfoBottom).toBeLessThan(30);
+  }
   const info = page.getByRole('region', { name: 'Color 1 color information', exact: true });
   await expect(info).toContainText('38 70 83');
   await expect(info).toContainText('White text · WCAG 2.2');
@@ -75,16 +82,44 @@ test('minimum-height wrapped swatches keep both titles and a scrollable metadata
   for (const swatch of await page.locator('.swatch').all()) {
     const geometry = await swatch.evaluate(element => {
       const info = element.querySelector<HTMLElement>('.swatch-info');
-      const name = element.querySelector('.name-button');
+      const name = element.querySelector('.hex-button');
       if (!info || !name) throw new Error('Expected a title and metadata in every swatch');
       const title = name.getBoundingClientRect();
       const bounds = info.getBoundingClientRect();
-      return { height: bounds.height, titleBottom: title.bottom, top: bounds.top, bottom: bounds.bottom, swatchBottom: element.getBoundingClientRect().bottom, overflow: info.scrollHeight > info.clientHeight, width: info.scrollWidth, clientWidth: info.clientWidth };
+      return { height: bounds.height, titleTop: title.top, top: bounds.top, bottom: bounds.bottom, swatchBottom: element.getBoundingClientRect().bottom, overflow: info.scrollHeight > info.clientHeight, width: info.scrollWidth, clientWidth: info.clientWidth };
     });
     expect(geometry.height).toBeGreaterThan(30);
-    expect(geometry.top).toBeGreaterThanOrEqual(geometry.titleBottom);
+    expect(geometry.bottom).toBeLessThanOrEqual(geometry.titleTop);
     expect(geometry.bottom).toBeLessThanOrEqual(geometry.swatchBottom);
     expect(geometry.overflow).toBe(true);
     expect(geometry.width).toBe(geometry.clientWidth);
   }
+});
+
+test('the info toggle remembers both states across reloads and different palettes', async ({ page }) => {
+  const toggle = page.getByRole('button', { name: 'Color information', exact: true });
+  await toggle.click();
+  await page.reload();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.swatch-info')).toHaveCount(5);
+  await page.goto('/#111111#222222');
+  await expect(page.locator('.swatch-info')).toHaveCount(2);
+  await toggle.click();
+  await page.reload();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.locator('.swatch-info')).toHaveCount(0);
+});
+
+test('invalid or unavailable info storage defaults to off and leaves the toggle usable', async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem('palette:info', 'invalid'));
+  await page.reload();
+  const toggle = page.getByRole('button', { name: 'Color information', exact: true });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Blocked', 'SecurityError'); } });
+  });
+  await page.reload();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await toggle.click();
+  await expect(page.locator('.swatch-info')).toHaveCount(5);
 });

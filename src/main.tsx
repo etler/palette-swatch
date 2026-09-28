@@ -24,7 +24,20 @@ function App() {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [notice, setNotice] = useState('');
   const [keyboard, setKeyboard] = useState(false);
-  const [showInfo, setShowInfo] = useState(false);
+  const [showInfo, setShowInfo] = useState(() => {
+    try {
+      return localStorage.getItem('palette:info') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('palette:info', String(showInfo));
+    } catch {
+      // The info toggle still works when browser storage is blocked.
+    }
+  }, [showInfo]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsButton = useRef<HTMLButtonElement>(null);
   const [settings, setSettings] = useState(readSettings);
@@ -365,6 +378,10 @@ function App() {
               </button>)}
               <button className="shade-back icon-button" aria-label="Cancel shades" onClick={dismiss}><Icon name="close" /></button>
             </div> : <div className="swatch-label">
+              {showInfo && <div className="swatch-info" role="region" aria-label={`${swatch.name} color information`} tabIndex={0}
+                onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onCopy={event => event.stopPropagation()}>
+                <dl>{colorInfo(hex).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+              </div>}
               <button data-target="hex" className="hex-button" aria-label={`Edit ${swatch.name} color ${hex}`} onClick={event => {
                 const bounds = event.currentTarget.getBoundingClientRect();
                 close();
@@ -375,10 +392,6 @@ function App() {
                 close();
                 setEditor({ kind: 'name', swatch: { ...swatch, hex }, x: bounds.left + bounds.width / 2 });
               }}>{swatch.name}</button>
-              {showInfo && <div className="swatch-info" role="region" aria-label={`${swatch.name} color information`} tabIndex={0}
-                onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onCopy={event => event.stopPropagation()}>
-                <dl>{colorInfo(hex).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-              </div>}
             </div>}
             {!drag && editor.kind === 'closed' && palette.length > 1 && ['top', 'bottom'].map(edge => <div key={edge} className={`delete-zone delete-zone-${edge}`}>
               <button className="delete-color" tabIndex={edge === 'bottom' ? -1 : undefined} aria-label={`Delete ${swatch.name}`} onClick={() => remove(swatch.id)}><Icon name="close" /></button>
