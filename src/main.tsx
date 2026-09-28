@@ -242,7 +242,7 @@ function App() {
         focusSwatch(palette[Math.max(0, index)].id, active instanceof HTMLElement ? active.dataset.target : undefined);
         return;
       }
-      if (keyboard && index >= 0 && event.ctrlKey && ['c', 'v'].includes(event.key.toLowerCase())) {
+      if (index >= 0 && event.ctrlKey && (event.key.toLowerCase() === 'c' || keyboard && event.key.toLowerCase() === 'v')) {
         event.preventDefault();
         if (event.key.toLowerCase() === 'c') {
           navigator.clipboard.writeText(palette[index].hex).catch(() => setNotice('Clipboard access unavailable.'));
@@ -327,7 +327,7 @@ function App() {
       onCopy={event => {
         const swatch = document.activeElement?.closest<HTMLElement>('.swatch');
         const color = palette.find(item => `swatch-${item.id}` === swatch?.id);
-        if (!keyboard || editor.kind !== 'closed' || !color) return;
+        if (editor.kind !== 'closed' || !color) return;
         event.preventDefault(); event.clipboardData.setData('text/plain', color.hex);
       }}
       onPointerDown={event => {

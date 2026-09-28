@@ -40,7 +40,7 @@ const shortcuts = [
     ['Add swatch to the right', 'Space twice'],
     ['Edit focused color', keyLabels.enter],
     ['Open focused hex or name', `Space / ${keyLabels.enter}`],
-    ['Copy focused hex', `${keyLabels.modifier} + C`],
+    ['Copy selected hex', `${keyLabels.modifier} + C`],
     ['Paste color to the right', `${keyLabels.modifier} + V`],
     ['Undo', `${keyLabels.modifier} + Z`],
     ['Redo', keyLabels.redo],

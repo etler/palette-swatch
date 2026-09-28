@@ -60,7 +60,8 @@ Contrast follows [WCAG 2.2 relative luminance](https://www.w3.org/TR/WCAG22/#dfn
 | Palette with an outline | Up / Down | Down cycles swatch → hex → name → swatch; Up reverses the loop |
 | Selected or focused swatch | Ctrl/Cmd/Alt + Left / Right | Swap with the neighboring swatch |
 | Selected or focused swatch | Delete / Backspace | Remove the swatch; keep the last one |
-| Palette with an outline | Ctrl/Cmd + C / V | Copy hex / insert clipboard hex to the right; accepts optional `#` and three- or six-digit hex |
+| Selected swatch | Ctrl/Cmd + C | Copy hex, with or without a focus outline |
+| Palette with an outline | Ctrl/Cmd + V | Insert clipboard hex to the right; accepts optional `#` and three- or six-digit hex |
 | Palette | Escape | Clear the target outline |
 | Palette | Ctrl/Cmd + Z; Ctrl/Cmd + Shift + Z or Ctrl + Y | Undo / redo; text fields retain native text undo |
 | Picker | Up / Down | Step through HEX and each slider; crossing either endpoint opens the opposite end of the mode selector |

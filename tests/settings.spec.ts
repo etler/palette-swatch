@@ -244,7 +244,7 @@ for (const [platform, modifier, alt, enter, deletion, redo] of [
     const panel = page.getByRole('tabpanel', { name: 'Keyboard shortcuts' });
     for (const [action, keys] of [
       ['Undo', `${modifier} + Z`],
-      ['Copy focused hex', `${modifier} + C`],
+      ['Copy selected hex', `${modifier} + C`],
       ['Toggle fullscreen', `${alt} + ${enter}`],
       ['Delete selected swatch', deletion],
       ['Redo', redo],

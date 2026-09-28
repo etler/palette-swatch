@@ -361,14 +361,38 @@ test('invalid clipboard text does not change the palette', async ({ page, contex
   await expect(page.locator('.swatch')).toHaveCount(5);
 });
 
-test('clipboard shortcuts do nothing until a target outline is visible', async ({ page, context }) => {
+test('copy uses the selected swatch without an outline while paste still requires an outline', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.evaluate(() => navigator.clipboard.writeText('ABCDEF'));
-  await page.getByRole('region', { name: 'Color 1', exact: true }).click({ position: { x: 100, y: 200 } });
   await page.keyboard.press('Control+c');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('ABCDEF');
+  const swatch = page.getByRole('region', { name: 'Color 2', exact: true });
+  await swatch.click({ position: { x: 100, y: 200 } });
+  await expect(swatch).toHaveCSS('outline-style', 'none');
+  await page.keyboard.press('Control+c');
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('2A9D8F');
+  await expect(swatch).toHaveCSS('outline-style', 'none');
   await page.keyboard.press('Control+v');
   await expect(page.locator('.swatch')).toHaveCount(5);
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('ABCDEF');
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => navigator.clipboard.writeText('ABCDEF'));
+  await page.keyboard.press('Control+c');
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('2A9D8F');
+  await expect(swatch).toHaveCSS('outline-style', 'none');
+});
+
+test('native copy events use the selected swatch without an outline', async ({ page }) => {
+  const swatch = page.getByRole('region', { name: 'Color 3', exact: true });
+  await swatch.click({ position: { x: 100, y: 200 } });
+  const copied = await swatch.evaluate(element => {
+    const clipboardData = new DataTransfer();
+    const event = new ClipboardEvent('copy', { clipboardData, bubbles: true, cancelable: true });
+    element.dispatchEvent(event);
+    return clipboardData.getData('text/plain');
+  });
+  expect(copied).toBe('E9C46A');
+  await expect(swatch).toHaveCSS('outline-style', 'none');
 });
 
 test('native paste events accept shorthand hex from an external source', async ({ page }) => {
