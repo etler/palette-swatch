@@ -47,6 +47,34 @@ function relativeLuminance(hex: string): number {
   return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
 }
 
+export function contrastRatio(first: string, second: string): number {
+  const a = relativeLuminance(first);
+  const b = relativeLuminance(second);
+  return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+}
+
+export const contrastRating = (ratio: number) => ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA large only' : 'Fail';
+
+export const visionModes = ['Normal', 'Protanopia', 'Deuteranopia', 'Tritanopia', 'Grayscale'] as const;
+export type VisionMode = typeof visionModes[number];
+
+// Machado et al. (2009), severity 1.0, applied in linear RGB.
+// https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html
+const visionMatrices = {
+  Protanopia: [[.152286, 1.052583, -.204868], [.114503, .786281, .099216], [-.003882, -.048116, 1.051998]],
+  Deuteranopia: [[.367322, .860646, -.227968], [.280085, .672501, .047413], [-.011820, .042940, .968881]],
+  Tritanopia: [[1.255528, -.076749, -.178779], [-.078411, .930809, .147602], [.004733, .691367, .303900]],
+  Grayscale: [[.2126, .7152, .0722], [.2126, .7152, .0722], [.2126, .7152, .0722]],
+} as const;
+
+export function simulateVision(hex: string, mode: VisionMode): string {
+  if (mode === 'Normal') return hex;
+  const rgb = new Color(`#${hex}`).to('srgb-linear').coords;
+  const [r, g, b] = visionMatrices[mode].map(row => clamp(row.reduce((sum, weight, index) => sum + weight * (rgb[index] ?? 0), 0)));
+  const simulated = new Color('srgb-linear', [r, g, b]).to('srgb');
+  return toHex('RGB', simulated.coords.map(value => (value ?? 0) * 255));
+}
+
 export function ink(hex: string): '#000000' | '#ffffff' {
   return relativeLuminance(hex) > .179 ? '#000000' : '#ffffff';
 }
@@ -63,8 +91,7 @@ export function colorInfo(hex: string): readonly (readonly [string, string])[] {
   const [lightness, chroma, angle] = new Color(`#${hex}`).to('oklch').coords;
   const luminance = relativeLuminance(hex);
   const contrast = (ratio: number) => {
-    const rating = ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA large only' : 'Fail';
-    return `${(Math.floor(ratio * 100) / 100).toFixed(2)}:1 · ${rating}`;
+    return `${(Math.floor(ratio * 100) / 100).toFixed(2)}:1 · ${contrastRating(ratio)}`;
   };
   return [
     ['RGB', rgb.map(value => format(value, 0)).join(' ')],

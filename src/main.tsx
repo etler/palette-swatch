@@ -1,6 +1,6 @@
 import { Fragment, StrictMode, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
 import { createRoot } from 'react-dom/client';
-import { clamp, colorInfo, coordinates, ink, parseHex, shades, toHex, type Mode } from './color';
+import { clamp, colorInfo, coordinates, ink, parseHex, shades, simulateVision, toHex, type Mode, type VisionMode } from './color';
 import { historyReducer, insertionColor, move, parse, persist, type Palette, type Swatch } from './palette';
 import { Icon, Picker, Popup } from './Picker';
 import { readSettings, SettingsPanel } from './Settings';
@@ -29,6 +29,7 @@ function measureTitles(element: HTMLDivElement | null) {
 function App() {
   const [history, dispatch] = useReducer(historyReducer, location.hash, hash => ({ past: [], present: parse(hash), future: [] }));
   const [mode, setMode] = useState<Mode>('HSB');
+  const [vision, setVision] = useState<VisionMode>('Normal');
   const [editor, setEditor] = useState<Editor>({ kind: 'closed' });
   const [drag, setDrag] = useState<Drag | null>(null);
   const [notice, setNotice] = useState('');
@@ -97,6 +98,7 @@ function App() {
     clamp(Math.round((drag.y - drag.startY) / drag.height) + Math.floor(drag.origin / columns), 0, rows - 1) * columns +
     clamp(Math.round((drag.x - drag.startX) / drag.width) + drag.origin % columns, 0, columns - 1)) : 0;
   const arranged = drag ? move(palette, drag.id, target) : palette;
+  const previewPalette = palette.map(swatch => editor.kind === 'color' && editor.swatch.id === swatch.id ? { ...swatch, hex: toHex(mode, editor.values) } : swatch);
   const update = (swatch: Swatch) => palette.map(item => item.id === swatch.id ? swatch : item);
   const commit = (next: Palette) => {
     if (next.length === palette.length) next.forEach((swatch, position) => {
@@ -364,15 +366,15 @@ function App() {
         const index = palette.findIndex(item => `swatch-${item.id}` === swatch.id);
         if (index >= 0) add(index + 1);
       }}>
-      {palette.map((swatch, index) => {
-        const hex = editor.kind === 'color' && editor.swatch.id === swatch.id ? toHex(mode, editor.values) : swatch.hex;
+      {previewPalette.map((swatch, index) => {
+        const hex = swatch.hex;
         const position = arranged.findIndex(item => item.id === swatch.id);
         const isDragged = drag?.id === swatch.id;
         const exploring = editor.kind === 'shades' && editor.swatch.id === swatch.id;
         return <Fragment key={swatch.id}>
           {index === 0 && addControl(0)}
           <section id={`swatch-${swatch.id}`} data-target="swatch" className={`swatch ${isDragged ? 'dragged' : ''}`} aria-label={swatch.name} aria-keyshortcuts="Control+ArrowLeft Control+ArrowRight Alt+ArrowLeft Alt+ArrowRight Delete Backspace" tabIndex={0}
-            style={{ ...paint(hex), '--offset-x': position % columns - index % columns, '--offset-y': Math.floor(position / columns) - Math.floor(index / columns), ...(isDragged ? { transform: `translate(${drag.x - drag.startX}px, ${drag.y - drag.startY}px)` } : {}) } as CSSProperties}>
+            style={{ ...paint(simulateVision(hex, vision)), '--offset-x': position % columns - index % columns, '--offset-y': Math.floor(position / columns) - Math.floor(index / columns), ...(isDragged ? { transform: `translate(${drag.x - drag.startX}px, ${drag.y - drag.startY}px)` } : {}) } as CSSProperties}>
             {exploring ? <div className="shade-list" role="group" aria-label="Choose a shade" onKeyDown={event => {
               if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
               event.preventDefault();
@@ -381,7 +383,7 @@ function App() {
               const next = event.key === 'Home' ? 0 : event.key === 'End' ? 24 : clamp(current + (['ArrowUp', 'ArrowLeft'].includes(event.key) ? -1 : 1), 0, 24);
               options[next].focus();
             }}>
-              {shades(mode, editor.values, editor.channel).map((shade, i) => <button key={i} className="shade" style={paint(shade.hex)} aria-label={shade.code} aria-current={shade.original ? 'true' : undefined}
+              {shades(mode, editor.values, editor.channel).map((shade, i) => <button key={i} className="shade" style={paint(simulateVision(shade.hex, vision))} aria-label={shade.code} aria-current={shade.original ? 'true' : undefined}
                 autoFocus={shade.original} onClick={() => { commit(update({ ...swatch, hex: shade.hex })); dismiss(); }}>
                 {shade.original && <span className="original-dot" />}<span className="shade-code">{shade.code}</span>
               </button>)}
@@ -440,7 +442,7 @@ function App() {
       })}
     </main>
     </div>
-    <SettingsPanel open={settingsOpen} settings={settings} onSave={setSettings} onClose={() => {
+    <SettingsPanel palette={drag ? move(previewPalette, drag.id, target) : previewPalette} vision={vision} onVision={setVision} open={settingsOpen} settings={settings} onSave={setSettings} onClose={() => {
       setSettingsOpen(false);
       settingsButton.current?.focus();
     }} />

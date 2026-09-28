@@ -1,5 +1,14 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from './Picker';
+import { Accessibility } from './Accessibility';
+import type { VisionMode } from './color';
+import type { Palette } from './palette';
+
+const tabs = [
+  { id: 'settings', label: 'Settings', icon: 'settings' },
+  { id: 'accessibility', label: 'Accessibility', icon: 'eye' },
+  { id: 'keyboard', label: 'Keyboard shortcuts', icon: 'keyboard' },
+] as const;
 
 const fields = [
   { key: 'minimumSwatchWidth', label: 'Minimum swatch width', min: 60, max: 1000, defaultValue: 100 },
@@ -79,13 +88,16 @@ export function readSettings(): Settings {
   }
 }
 
-export function SettingsPanel({ open, settings, onSave, onClose }: {
+export function SettingsPanel({ open, settings, onSave, onClose, palette, vision, onVision }: {
+  readonly palette: Palette;
+  readonly vision: VisionMode;
+  readonly onVision: (mode: VisionMode) => void;
   readonly open: boolean;
   readonly settings: Settings;
   readonly onSave: (settings: Settings) => void;
   readonly onClose: () => void;
 }) {
-  const [tab, setTab] = useState<'settings' | 'keyboard'>('settings');
+  const [tab, setTab] = useState<typeof tabs[number]['id']>('settings');
   const panel = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     if (open) panel.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
@@ -99,14 +111,15 @@ export function SettingsPanel({ open, settings, onSave, onClose }: {
         <div className="sidebar-tabs" role="tablist" aria-label="Sidebar" onKeyDown={event => {
           if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
           event.preventDefault();
-          const next = event.key === 'Home' ? 'settings' : event.key === 'End' ? 'keyboard' : tab === 'settings' ? 'keyboard' : 'settings';
+          const index = tabs.findIndex(item => item.id === tab);
+          const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length].id;
           setTab(next);
           event.currentTarget.querySelector<HTMLElement>(`#${next}-tab`)?.focus();
         }}>
-          {(['settings', 'keyboard'] as const).map(item => <button key={item} id={`${item}-tab`} type="button" role="tab"
-            aria-label={item === 'settings' ? 'Settings' : 'Keyboard shortcuts'} title={item === 'settings' ? 'Settings' : 'Keyboard shortcuts'}
-            aria-controls={`${item}-content`} aria-selected={tab === item} tabIndex={tab === item ? 0 : -1} onClick={() => setTab(item)}>
-            <Icon name={item} />
+          {tabs.map(item => <button key={item.id} id={`${item.id}-tab`} type="button" role="tab"
+            aria-label={item.label} title={item.label}
+            aria-controls={`${item.id}-content`} aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} onClick={() => setTab(item.id)}>
+            <Icon name={item.icon} />
           </button>)}
         </div>
         <button type="button" className="icon-button" aria-label="Close menu" onClick={onClose}><Icon name="close" /></button>
@@ -142,6 +155,9 @@ export function SettingsPanel({ open, settings, onSave, onClose }: {
             <button className="save-button" type="submit">Save<Icon name="check" /></button>
           </div>
         </form>
+        <section id="accessibility-content" role="tabpanel" aria-labelledby="accessibility-tab" hidden={tab !== 'accessibility'} className="accessibility-panel">
+          <Accessibility palette={palette} vision={vision} onVision={onVision} />
+        </section>
         <section id="keyboard-content" role="tabpanel" aria-labelledby="keyboard-tab" hidden={tab !== 'keyboard'} tabIndex={0} className="shortcut-list">
           <h2>Keyboard shortcuts</h2>
           {shortcuts.map(([group, entries]) => <section key={group}>

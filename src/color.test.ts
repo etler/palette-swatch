@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { colorInfo, coordinates, ink, modes, parseHex, shades, toHex } from './color';
+import { colorInfo, contrastRatio, contrastRating, coordinates, ink, modes, parseHex, shades, simulateVision, toHex, visionModes } from './color';
 import { historyReducer, insertionColor, move, parse, serialize } from './palette';
 
 describe('color conversion', () => {
@@ -118,5 +118,27 @@ describe('new palette colors', () => {
     const palette = parse('#2A9D8F');
     expect(insertionColor(palette, 0)).toBe('2A9D8F');
     expect(insertionColor(palette, 1)).toBe('2A9D8F');
+  });
+});
+
+describe('accessibility analysis', () => {
+  it('calculates symmetric WCAG contrast and rates unrounded values', () => {
+    expect(contrastRatio('000000', 'FFFFFF')).toBe(21);
+    expect(contrastRatio('264653', '264653')).toBe(1);
+    expect(contrastRatio('FF0000', 'FFFFFF')).toBeCloseTo(1.05 / .2626, 10);
+    expect(contrastRatio('AA1C2E', '7F0600')).toBe(contrastRatio('7F0600', 'AA1C2E'));
+    expect(contrastRating(6.999)).toBe('AA');
+    expect(contrastRating(7)).toBe('AAA');
+    expect(contrastRating(4.499)).toBe('AA large only');
+  });
+  it('preserves neutral colors in every simulation and leaves Normal unchanged', () => {
+    for (const mode of visionModes) {
+      for (const hex of ['000000', 'FFFFFF', '808080']) expect(simulateVision(hex, mode)).toBe(hex);
+    }
+    expect(simulateVision('C04E31', 'Normal')).toBe('C04E31');
+    expect(simulateVision('FF0000', 'Protanopia')).toBe('6D5F00');
+    expect(simulateVision('FF0000', 'Deuteranopia')).toBe('A39000');
+    expect(simulateVision('FF0000', 'Tritanopia')).toBe('FF000F');
+    expect(simulateVision('FF0000', 'Grayscale')).toBe('7F7F7F');
   });
 });
