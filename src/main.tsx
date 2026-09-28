@@ -1,4 +1,4 @@
-import { Fragment, StrictMode, useEffect, useEffectEvent, useReducer, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, StrictMode, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
 import { createRoot } from 'react-dom/client';
 import { clamp, coordinates, ink, parseHex, shades, toHex, type Mode } from './color';
 import { historyReducer, insertionColor, move, parse, persist, type Palette, type Swatch } from './palette';
@@ -9,11 +9,11 @@ type Editor = Readonly<{ kind: 'closed' }>
   | Readonly<{ kind: 'name'; swatch: Swatch; x: number }>
   | Readonly<{ kind: 'color'; swatch: Swatch; x: number; values: readonly number[] }>
   | Readonly<{ kind: 'shades'; swatch: Swatch; values: readonly number[]; channel: number }>;
-type Drag = Readonly<{ id: string; startX: number; x: number; width: number; origin: number }>;
+type Drag = Readonly<{ id: string; startX: number; startY: number; x: number; y: number; width: number; height: number; origin: number }>;
 const paint = (hex: string): CSSProperties => ({ '--color': `#${hex}`, '--ink': ink(hex) } as CSSProperties);
 function focusSwatch(id: string, part = 'swatch') {
   const swatch = document.getElementById(`swatch-${id}`);
-  (part === 'swatch' ? swatch : swatch?.querySelector<HTMLElement>(`[data-target="${part}"]`))?.focus({ preventScroll: true });
+  (part === 'swatch' ? swatch : swatch?.querySelector<HTMLElement>(`[data-target="${part}"]`))?.focus();
 }
 
 function App() {
@@ -23,6 +23,20 @@ function App() {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [notice, setNotice] = useState('');
   const [keyboard, setKeyboard] = useState(false);
+  const paletteElement = useRef<HTMLElement>(null);
+  const [capacity, setCapacity] = useState(1);
+  useLayoutEffect(() => {
+    const element = paletteElement.current;
+    if (!element) return;
+    const measure = () => {
+      const gap = parseFloat(getComputedStyle(element).columnGap);
+      setCapacity(Math.max(1, Math.floor((element.clientWidth + gap) / (100 + gap))));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   const [outline, setOutline] = useState<{ readonly mode: 'none' | 'outer' | 'swatches'; readonly color: 'white' | 'black' }>(() => {
     try {
       const [mode, color] = (localStorage.getItem('palette:outline') ?? '').split(':');
@@ -43,7 +57,11 @@ function App() {
     ? { mode: current.mode === 'none' ? 'outer' : current.mode, color: current.color === 'white' ? 'black' : 'white' }
     : { ...current, mode: current.mode === 'none' ? 'outer' : current.mode === 'outer' ? 'swatches' : 'none' });
   const palette = history.present;
-  const target = drag ? Math.round(clamp((drag.x - drag.startX) / drag.width + drag.origin, 0, palette.length - 1)) : 0;
+  const columns = Math.min(capacity, palette.length);
+  const rows = Math.ceil(palette.length / columns);
+  const target = drag ? Math.min(palette.length - 1,
+    clamp(Math.round((drag.y - drag.startY) / drag.height) + Math.floor(drag.origin / columns), 0, rows - 1) * columns +
+    clamp(Math.round((drag.x - drag.startX) / drag.width) + drag.origin % columns, 0, columns - 1)) : 0;
   const arranged = drag ? move(palette, drag.id, target) : palette;
   const update = (swatch: Swatch) => palette.map(item => item.id === swatch.id ? swatch : item);
   const commit = (next: Palette) => {
@@ -53,10 +71,12 @@ function App() {
       if (!element || previous < 0 || previous === position) return;
       const style = getComputedStyle(element);
       const gap = parseFloat(style.getPropertyValue('--swatch-gap'));
-      const distance = (previous - position) * (element.getBoundingClientRect().width + gap);
-      const offset = new DOMMatrixReadOnly(style.transform).m41 + distance;
-      // Preserve the visible position while the DOM moves into its new flex slot.
-      element.animate([{ transform: `translateX(${offset}px)` }, { transform: 'translateX(0px)' }], {
+      const bounds = element.getBoundingClientRect();
+      const matrix = new DOMMatrixReadOnly(style.transform);
+      const x = matrix.m41 + (previous % columns - position % columns) * (bounds.width + gap);
+      const y = matrix.m42 + (Math.floor(previous / columns) - Math.floor(position / columns)) * (bounds.height + gap);
+      // Preserve the visible position while the DOM moves into its new grid cell.
+      element.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: 'translate(0px, 0px)' }], {
         duration: Number(style.getPropertyValue('--swap-duration')),
         easing: style.getPropertyValue('--swap-easing'),
       });
@@ -219,12 +239,16 @@ function App() {
     else setNotice('Clipboard must contain a hex color.');
     return true;
   });
-  const addControl = (index: number) => !drag && editor.kind === 'closed' && <div className="add-zone" style={{ '--boundary': index } as CSSProperties}>
-    <button className="add-color" aria-label={`Add color at position ${index + 1}`} onClick={() => add(index)}><Icon name="plus" /></button>
-  </div>;
+  const addControl = (index: number) => {
+    const anchor = Math.max(0, index - 1);
+    return !drag && editor.kind === 'closed' && <div className="add-zone" data-edge={index === 0 ? 'start' : index % columns === 0 || index === palette.length ? 'end' : undefined}
+      style={{ gridColumn: `${anchor % columns + 1} / span 1`, gridRow: `${Math.floor(anchor / columns) + 1} / span 1` }}>
+      <button className="add-color" aria-label={`Add color at position ${index + 1}`} onClick={() => add(index)}><Icon name="plus" /></button>
+    </div>;
+  };
   return <>
     <h1 className="sr-only">Palette explorer</h1>
-    <main className={`palette ${drag ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter" style={{ '--count': palette.length, '--outline-color': outline.color } as CSSProperties}
+    <main ref={paletteElement} className={`palette ${drag ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter" style={{ '--columns': columns, '--rows': rows, '--outline-color': outline.color } as CSSProperties}
       onCopy={event => {
         const swatch = document.activeElement?.closest<HTMLElement>('.swatch');
         const color = palette.find(item => `swatch-${item.id}` === swatch?.id);
@@ -237,15 +261,21 @@ function App() {
         const left = bounds.left + event.currentTarget.clientLeft;
         const top = bounds.top + event.currentTarget.clientTop;
         if (event.clientX < left || event.clientX >= left + event.currentTarget.clientWidth || event.clientY < top || event.clientY >= top + event.currentTarget.clientHeight) return;
-        const gap = parseFloat(getComputedStyle(event.currentTarget).columnGap);
-        const width = (event.currentTarget.clientWidth + gap) / palette.length;
-        const origin = clamp(Math.floor((event.clientX - left + gap / 2) / width), 0, palette.length - 1);
+        const style = getComputedStyle(event.currentTarget);
+        const gap = parseFloat(style.columnGap);
+        const width = (event.currentTarget.clientWidth + gap) / columns;
+        const height = parseFloat(style.gridTemplateRows) + gap;
+        const column = clamp(Math.floor((event.clientX - left + gap / 2) / width), 0, columns - 1);
+        const row = Math.floor((event.clientY - top + event.currentTarget.scrollTop + gap / 2) / height);
+        const origin = row * columns + column;
+        if (origin >= palette.length) return;
         event.preventDefault();
-        focusSwatch(palette[origin].id);
+        // Keep the pointer geometry steady while starting a drag.
+        event.currentTarget.querySelectorAll<HTMLElement>('.swatch')[origin].focus({ preventScroll: true });
         event.currentTarget.setPointerCapture(event.pointerId);
-        setDrag({ id: palette[origin].id, startX: event.clientX, x: event.clientX, width, origin });
+        setDrag({ id: palette[origin].id, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, width, height, origin });
       }}
-      onPointerMove={event => { if (drag) setDrag({ ...drag, x: event.clientX }); }}
+      onPointerMove={event => { if (drag) setDrag({ ...drag, x: event.clientX, y: event.clientY }); }}
       onPointerUp={() => { if (drag) { commit(arranged); setDrag(null); } }}
       onPointerCancel={() => setDrag(null)}
       onDoubleClick={event => {
@@ -266,7 +296,7 @@ function App() {
         return <Fragment key={swatch.id}>
           {index === 0 && addControl(0)}
           <section id={`swatch-${swatch.id}`} data-target="swatch" className={`swatch ${isDragged ? 'dragged' : ''}`} aria-label={swatch.name} aria-keyshortcuts="Control+ArrowLeft Control+ArrowRight Alt+ArrowLeft Alt+ArrowRight Delete Backspace" tabIndex={0}
-            style={{ ...paint(hex), '--offset': position - index, ...(isDragged ? { transform: `translateX(${drag.x - drag.startX}px)` } : {}) } as CSSProperties}>
+            style={{ ...paint(hex), '--offset-x': position % columns - index % columns, '--offset-y': Math.floor(position / columns) - Math.floor(index / columns), ...(isDragged ? { transform: `translate(${drag.x - drag.startX}px, ${drag.y - drag.startY}px)` } : {}) } as CSSProperties}>
             {exploring ? <div className="shade-list" role="group" aria-label="Choose a shade" onKeyDown={event => {
               if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
               event.preventDefault();
@@ -299,6 +329,9 @@ function App() {
           {addControl(index + 1)}
         </Fragment>;
       })}
+      {Array.from({ length: rows * columns - palette.length }, (_, index) => <div key={index} className="empty-swatch" style={{ color: outline.color === 'white' ? 'black' : 'white' }}>
+        {!drag && editor.kind === 'closed' && <button className="add-color" aria-label={`Add color in empty space ${index + 1}`} onClick={() => add(palette.length)}><Icon name="plus" /></button>}
+      </div>)}
       {!drag && editor.kind === 'closed' && ['top-left', 'top-right', 'bottom-left', 'bottom-right'].map(corner => {
         const action = corner.endsWith('right') ? 'color' : 'mode';
         return <div key={corner} className={`outline-zone outline-zone-${corner}`}>

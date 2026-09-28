@@ -15,6 +15,10 @@ npm run dev
 
 [Open Palette](https://etler.github.io/palette-swatch/). Every push to `main` runs the unit tests, builds the app, and deploys `dist` to GitHub Pages through `.github/workflows/pages.yml`. The workflow can also be run manually from GitHub Actions.
 
+## Responsive experiment
+
+Swatches wrap into equal columns when another column would make them narrower than 100px. Empty cells follow the outline color and have a centered + button that appends a color. Rows share the window height; long palettes scroll once rows reach 220px tall. Keyboard navigation keeps the original palette order across row boundaries.
+
 ## Interactions
 
 - Click a hex code to edit. Click a name to rename it.

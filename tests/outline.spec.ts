@@ -117,9 +117,12 @@ test('outline shortcuts preserve popup edits and borders leave swatch controls u
   await expect(swatch).toBeVisible();
   await page.keyboard.press('Control+Space');
   await page.clock.runFor(400);
-  await page.mouse.move(110, 250);
+  const from = await swatch.boundingBox();
+  const to = await page.getByRole('region', { name: 'Color 3', exact: true }).boundingBox();
+  if (!from || !to) throw new Error('Expected visible swatches');
+  await page.mouse.move(from.x + from.width / 2, from.y + 100);
   await page.mouse.down();
-  await page.mouse.move(200, 250, { steps: 10 });
+  await page.mouse.move(to.x + to.width / 2, to.y + 100, { steps: 10 });
   await page.mouse.up();
   await expect(page.locator('.hex-button')).toHaveText(['264653', 'E9C46A', '2A9D8F', 'F4A261', 'E76F51']);
 });
@@ -186,13 +189,16 @@ for (const width of [1440, 1000, 390]) {
     const thickness = width <= 600 ? 8 : 16;
     await expect(palette).toHaveCSS('column-gap', `${thickness}px`);
     const expectEqualSpacing = async () => {
-      const bounds = await page.locator('.swatch').evaluateAll(elements => elements.map(element => {
+      const bounds = await page.locator('.swatch, .empty-swatch').evaluateAll(elements => elements.map(element => {
         const { left, right, top, bottom, width } = element.getBoundingClientRect();
         return { left, right, top, bottom, width };
       }));
-      const gaps = [bounds[0].left, width - bounds[bounds.length - 1].right,
-        ...bounds.flatMap((bounds, index, all) => [bounds.top, 900 - bounds.bottom,
-          ...(index > 0 ? [bounds.left - all[index - 1].right] : [])])];
+      const columns = bounds.filter(cell => Math.abs(cell.top - bounds[0].top) < 1).length;
+      const gaps = [bounds[0].left, width - bounds[bounds.length - 1].right, bounds[0].top, 900 - bounds[bounds.length - 1].bottom,
+        ...bounds.flatMap((cell, index, all) => [
+          ...(index % columns > 0 ? [cell.left - all[index - 1].right] : []),
+          ...(index >= columns ? [cell.top - all[index - columns].bottom] : []),
+        ])];
       for (const gap of gaps) expect(gap).toBeCloseTo(thickness, 1);
       for (const swatch of bounds) expect(swatch.width).toBeCloseTo(bounds[0].width, 1);
     };
