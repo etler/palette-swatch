@@ -245,6 +245,8 @@ function App() {
       if (index >= 0 && event.ctrlKey && (event.key.toLowerCase() === 'c' || keyboard && event.key.toLowerCase() === 'v')) {
         event.preventDefault();
         if (event.key.toLowerCase() === 'c') {
+          setKeyboard(true);
+          focusSwatch(palette[index].id);
           navigator.clipboard.writeText(palette[index].hex).catch(() => setNotice('Clipboard access unavailable.'));
         } else {
           const id = palette[index].id;
@@ -329,6 +331,8 @@ function App() {
         const color = palette.find(item => `swatch-${item.id}` === swatch?.id);
         if (editor.kind !== 'closed' || !color) return;
         event.preventDefault(); event.clipboardData.setData('text/plain', color.hex);
+        setKeyboard(true);
+        focusSwatch(color.id);
       }}
       onPointerDown={event => {
         if (event.button !== 0 || (event.target instanceof Element && event.target.closest('button, input')) || editor.kind !== 'closed') return;

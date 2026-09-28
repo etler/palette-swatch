@@ -361,7 +361,7 @@ test('invalid clipboard text does not change the palette', async ({ page, contex
   await expect(page.locator('.swatch')).toHaveCount(5);
 });
 
-test('copy uses the selected swatch without an outline while paste still requires an outline', async ({ page, context }) => {
+test('copy reveals focus on the selected swatch and arrows continue from it', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.evaluate(() => navigator.clipboard.writeText('ABCDEF'));
   await page.keyboard.press('Control+c');
@@ -369,30 +369,37 @@ test('copy uses the selected swatch without an outline while paste still require
   const swatch = page.getByRole('region', { name: 'Color 2', exact: true });
   await swatch.click({ position: { x: 100, y: 200 } });
   await expect(swatch).toHaveCSS('outline-style', 'none');
-  await page.keyboard.press('Control+c');
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('2A9D8F');
-  await expect(swatch).toHaveCSS('outline-style', 'none');
   await page.keyboard.press('Control+v');
   await expect(page.locator('.swatch')).toHaveCount(5);
-  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Control+c');
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('2A9D8F');
+  await expect(swatch).toBeFocused();
+  await expect(swatch).toHaveCSS('outline-style', 'solid');
   await page.keyboard.press('Escape');
+  await expect(swatch).toHaveCSS('outline-style', 'none');
   await page.evaluate(() => navigator.clipboard.writeText('ABCDEF'));
   await page.keyboard.press('Control+c');
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('2A9D8F');
-  await expect(swatch).toHaveCSS('outline-style', 'none');
+  await expect(swatch).toBeFocused();
+  await expect(swatch).toHaveCSS('outline-style', 'solid');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('region', { name: 'Color 3', exact: true })).toBeFocused();
 });
 
-test('native copy events use the selected swatch without an outline', async ({ page }) => {
+test('native copy reveals focus on the swatch even when a title was selected', async ({ page }) => {
   const swatch = page.getByRole('region', { name: 'Color 3', exact: true });
-  await swatch.click({ position: { x: 100, y: 200 } });
-  const copied = await swatch.evaluate(element => {
+  await swatch.locator('.name-button').click();
+  await page.keyboard.press('Escape');
+  await expect(swatch.locator('.name-button')).toBeFocused();
+  const copied = await swatch.locator('.name-button').evaluate(element => {
     const clipboardData = new DataTransfer();
     const event = new ClipboardEvent('copy', { clipboardData, bubbles: true, cancelable: true });
     element.dispatchEvent(event);
     return clipboardData.getData('text/plain');
   });
   expect(copied).toBe('E9C46A');
-  await expect(swatch).toHaveCSS('outline-style', 'none');
+  await expect(swatch).toBeFocused();
+  await expect(swatch).toHaveCSS('outline-style', 'solid');
 });
 
 test('native paste events accept shorthand hex from an external source', async ({ page }) => {
