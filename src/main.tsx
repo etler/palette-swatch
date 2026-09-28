@@ -48,7 +48,20 @@ function App() {
       // The info toggle still works when browser storage is blocked.
     }
   }, [showInfo]);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(() => {
+    try {
+      return localStorage.getItem('palette:sidebar-open') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('palette:sidebar-open', String(settingsOpen));
+    } catch {
+      // The sidebar still works when browser storage is blocked.
+    }
+  }, [settingsOpen]);
   const settingsButton = useRef<HTMLButtonElement>(null);
   const [settings, setSettings] = useState(readSettings);
   useEffect(() => {

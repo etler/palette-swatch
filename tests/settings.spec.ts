@@ -165,7 +165,6 @@ test('zero outline widths resolve to Auto when entered or loaded from storage', 
   await expect(page.getByRole('main')).toHaveCSS('border-top-width', '16px');
   await page.reload();
   await expect(page.getByRole('main')).toHaveCSS('border-top-width', '16px');
-  await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: 'Window outline width' })).toHaveValue('');
   await expect(page.getByRole('spinbutton', { name: 'Border outline width' })).toHaveValue('');
 });
@@ -256,3 +255,41 @@ for (const [platform, modifier, alt, enter, deletion, redo] of [
     await expect(panel).not.toContainText('Ctrl / ⌘');
   });
 }
+
+for (const label of ['Settings', 'Accessibility', 'Keyboard shortcuts']) {
+  test(`sidebar remembers open and closed states and the ${label} tab`, async ({ page, context }) => {
+    const menu = page.getByRole('button', { name: 'Menu', exact: true });
+    await menu.click();
+    await page.getByRole('tab', { name: label, exact: true }).click();
+    await page.reload();
+    await expect(menu).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByRole('tab', { name: label, exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tabpanel', { name: label, exact: true })).toBeVisible();
+    const reopened = await context.newPage();
+    await reopened.goto('/#FFFFFF#000000');
+    await expect(reopened.getByRole('button', { name: 'Menu', exact: true })).toHaveAttribute('aria-expanded', 'true');
+    await expect(reopened.getByRole('tab', { name: label, exact: true })).toHaveAttribute('aria-selected', 'true');
+    await reopened.close();
+    await page.keyboard.press('Shift+Slash');
+    await page.reload();
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('complementary', { name: 'Palette menu' })).toHaveCount(0);
+    await menu.click();
+    await expect(page.getByRole('tab', { name: label, exact: true })).toHaveAttribute('aria-selected', 'true');
+    await page.getByRole('button', { name: 'Close menu' }).click();
+    await page.reload();
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+  });
+}
+
+test('invalid sidebar preferences fall back to closed Settings', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem('palette:sidebar-open', 'yes');
+    localStorage.setItem('palette:sidebar-tab', 'unknown');
+  });
+  await page.reload();
+  const menu = page.getByRole('button', { name: 'Menu', exact: true });
+  await expect(menu).toHaveAttribute('aria-expanded', 'false');
+  await menu.click();
+  await expect(page.getByRole('tab', { name: 'Settings', exact: true })).toHaveAttribute('aria-selected', 'true');
+});

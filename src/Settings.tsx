@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from './Picker';
 import { Accessibility } from './Accessibility';
 import type { VisionMode } from './color';
@@ -97,7 +97,21 @@ export function SettingsPanel({ open, settings, onSave, onClose, palette, vision
   readonly onSave: (settings: Settings) => void;
   readonly onClose: () => void;
 }) {
-  const [tab, setTab] = useState<typeof tabs[number]['id']>('settings');
+  const [tab, setTab] = useState<typeof tabs[number]['id']>(() => {
+    try {
+      const stored = localStorage.getItem('palette:sidebar-tab');
+      return tabs.find(item => item.id === stored)?.id ?? 'settings';
+    } catch {
+      return 'settings';
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('palette:sidebar-tab', tab);
+    } catch {
+      // Tabs still work when browser storage is blocked.
+    }
+  }, [tab]);
   const panel = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     if (open) panel.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();

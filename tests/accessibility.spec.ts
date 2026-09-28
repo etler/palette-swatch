@@ -80,8 +80,6 @@ for (const width of [1440, 390, 320]) {
 
 test('a single swatch has no adjacent pair', async ({ page }) => {
   await page.goto('/?single#FFFFFF');
-  await page.getByRole('button', { name: 'Menu', exact: true }).click();
-  await page.getByRole('tab', { name: 'Accessibility', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Text Contrast' }).getByRole('listitem')).toHaveCount(1);
   await expect(page.getByRole('region', { name: 'Adjacent Contrast' }).getByRole('listitem')).toHaveCount(0);
 });
