@@ -17,7 +17,7 @@ npm run dev
 
 ## Responsive experiment
 
-Swatches use the fewest rows needed to stay at least 100px wide, with the column count spread evenly across those rows. Rows fill left to right; any unused slots at the bottom right merge into one cell with a centered + button that appends a color. This empty cell follows the outline color. Rows share the window height; long palettes scroll once rows reach 220px tall. Keyboard navigation keeps the original palette order across row boundaries.
+Swatches use the fewest rows needed to stay at least 100px wide, with the column count spread evenly across those rows. Rows fill left to right; any unused slots at the bottom right merge into one cell with a centered + button that appends a color. This empty cell follows the outline color. Rows share the window height; long palettes scroll once rows reach 160px tall. Keyboard navigation keeps the original palette order across row boundaries.
 
 ## Interactions
 

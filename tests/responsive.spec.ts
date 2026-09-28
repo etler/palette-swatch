@@ -75,8 +75,17 @@ test('dragging between rows swaps the two swatches with an animated preview', as
   await expect(page.locator('.hex-button')).toHaveText(colors);
 });
 
-test('insertion margins and title controls remain usable in short rows', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 440 });
+test('insertion margins and title controls remain usable in 160px rows', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 340 });
+  await page.keyboard.press('Control+Space');
+  await expect(page.getByRole('main')).toHaveCSS('border-top-width', '32px');
+  await expect(page.locator('.swatch').first()).toHaveCSS('height', '160px');
+  const clearances = await page.locator('.swatch').first().evaluate(element => {
+    const [label, top, bottom] = ['.swatch-label', '.delete-zone-top', '.delete-zone-bottom'].map(selector => element.querySelector(selector)?.getBoundingClientRect());
+    if (!label || !top || !bottom) throw new Error('Expected swatch label and hover zones');
+    return [label.top - top.bottom, bottom.top - label.bottom];
+  });
+  for (const clearance of clearances) expect(clearance).toBeGreaterThanOrEqual(0);
   const margin = page.getByRole('button', { name: 'Add color at position 5', exact: true });
   await margin.click();
   await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'EE8959', 'E76F51']);
@@ -92,7 +101,7 @@ test('insertion margins and title controls remain usable in short rows', async (
 test('keyboard focus scrolls additional rows into view', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 440 });
   await page.goto('/#264653#2A9D8F#E9C46A#F4A261#E76F51#DA3C41#ABC123#123ABC');
-  await page.getByRole('region', { name: 'Color 1', exact: true }).click({ position: { x: 65, y: 80 } });
+  await page.getByRole('region', { name: 'Color 1', exact: true }).click({ position: { x: 65, y: 40 } });
   await page.keyboard.press('ArrowRight');
   for (const index of [2, 3, 4, 5, 6, 7, 8]) {
     await page.keyboard.press('ArrowRight');
