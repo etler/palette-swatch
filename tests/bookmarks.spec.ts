@@ -118,6 +118,8 @@ test('hover and keyboard removal update bookmarks without changing the palette',
   await page.keyboard.press('Tab');
   await expect(panel).toBeFocused();
   await page.keyboard.press('Tab');
+  await expect(panel.getByRole('button', { name: 'Save Palette', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(panel.getByRole('button', { name: 'Add Sand E9C46A to palette' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(remaining).toBeFocused();
@@ -153,4 +155,23 @@ test('clicking or activating a bookmark appends its color and title, with undo a
   await expect(page.getByRole('tabpanel', { name: 'Bookmarks' }).getByRole('listitem')).toHaveCount(1);
   await page.getByRole('button', { name: 'Remove bookmark Ocean 264653' }).click();
   await expect(page.locator('.swatch')).toHaveCount(5);
+});
+
+
+test('Save Palette merges all swatches by hex, updates names, and persists without editing the palette', async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem('palette:bookmarks', JSON.stringify([['000000', 'Night'], ['264653', 'Old name']])));
+  await page.goto('/#264653:Ocean#264653:Sea#E9C46A:Sand#FFFFFF');
+  await page.reload();
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  await page.getByRole('tab', { name: 'Bookmarks', exact: true }).click();
+  const panel = page.getByRole('tabpanel', { name: 'Bookmarks', exact: true });
+  const save = panel.getByRole('button', { name: 'Save Palette', exact: true });
+  await save.click();
+  await expect(panel.getByRole('listitem')).toHaveText(['000000Night', '264653Sea', 'E9C46ASand', 'FFFFFF']);
+  await save.focus();
+  await page.keyboard.press('Enter');
+  await expect(panel.getByRole('listitem')).toHaveCount(4);
+  await expect(page).toHaveURL(/#264653:Ocean#264653:Sea#E9C46A:Sand#FFFFFF$/);
+  await page.reload();
+  await expect(panel.getByRole('listitem')).toHaveText(['000000Night', '264653Sea', 'E9C46ASand', 'FFFFFF']);
 });

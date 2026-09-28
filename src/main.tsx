@@ -465,7 +465,7 @@ function App() {
       })}
     </main>
     </div>
-    <SettingsPanel onAddBookmark={(hex, name) => {
+    <SettingsPanel onSavePalette={() => setBookmarks(current => new Map([...current, ...previewPalette.map(({ hex, name }) => [hex, name] as const)]))} onAddBookmark={(hex, name) => {
       close();
       commit([...previewPalette, { id: crypto.randomUUID(), hex, name }]);
     }} bookmarks={bookmarks} onRemoveBookmark={hex => setBookmarks(current => new Map([...current].filter(([key]) => key !== hex)))} palette={drag ? move(previewPalette, drag.id, target) : previewPalette} vision={vision} onVision={setVision} open={settingsOpen} settings={settings} onSave={setSettings} onClose={() => {

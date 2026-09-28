@@ -25,13 +25,17 @@ export function useBookmarks(notify: (message: string) => void) {
   return [bookmarks, setBookmarks] as const;
 }
 
-export function Bookmarks({ bookmarks, onRemove, onAdd }: {
+export function Bookmarks({ bookmarks, onRemove, onAdd, onSavePalette }: {
   readonly bookmarks: ReadonlyMap<string, string>;
   readonly onRemove: (hex: string) => void;
   readonly onAdd: (hex: string, name: string) => void;
+  readonly onSavePalette: () => void;
 }) {
   return <>
-    <h2>Bookmarks</h2>
+    <div className="bookmarks-header">
+      <h2>Bookmarks</h2>
+      <button type="button" onClick={onSavePalette}>Save Palette</button>
+    </div>
     {bookmarks.size ? <ul className="bookmark-grid">
       {[...bookmarks].map(([hex, name]) => <li key={hex} style={{ background: `#${hex}`, color: ink(hex) }}>
         <button type="button" className="bookmark-add" aria-label={`Add ${name ? `${name} ` : ''}${hex} to palette`} onClick={() => onAdd(hex, name)}>

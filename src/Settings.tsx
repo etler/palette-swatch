@@ -92,10 +92,11 @@ export function readSettings(): Settings {
   }
 }
 
-export function SettingsPanel({ open, settings, onSave, onClose, palette, vision, onVision, bookmarks, onRemoveBookmark, onAddBookmark }: {
+export function SettingsPanel({ open, settings, onSave, onClose, palette, vision, onVision, bookmarks, onRemoveBookmark, onAddBookmark, onSavePalette }: {
   readonly bookmarks: ReadonlyMap<string, string>;
   readonly onRemoveBookmark: (hex: string) => void;
   readonly onAddBookmark: (hex: string, name: string) => void;
+  readonly onSavePalette: () => void;
   readonly palette: Palette;
   readonly vision: VisionMode;
   readonly onVision: (mode: VisionMode) => void;
@@ -177,7 +178,7 @@ export function SettingsPanel({ open, settings, onSave, onClose, palette, vision
           </div>
         </form>
         <section id="bookmarks-content" role="tabpanel" aria-labelledby="bookmarks-tab" hidden={tab !== 'bookmarks'} tabIndex={0} className="bookmarks-panel">
-          <Bookmarks bookmarks={bookmarks} onRemove={onRemoveBookmark} onAdd={onAddBookmark} />
+          <Bookmarks bookmarks={bookmarks} onRemove={onRemoveBookmark} onAdd={onAddBookmark} onSavePalette={onSavePalette} />
         </section>
         <section id="accessibility-content" role="tabpanel" aria-labelledby="accessibility-tab" hidden={tab !== 'accessibility'} className="accessibility-panel">
           <Accessibility palette={palette} vision={vision} onVision={onVision} />
