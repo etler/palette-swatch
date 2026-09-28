@@ -20,7 +20,7 @@ export function Accessibility({ palette, vision, onVision }: {
         {palette.map(swatch => {
           const foreground = ink(swatch.hex);
           const ratio = contrastRatio(swatch.hex, foreground.slice(1));
-          return <li className="text-contrast-row" key={swatch.id} title={`${swatch.name}: ${foreground === '#000000' ? 'black' : 'white'} text · WCAG 2.2 normal text`}>
+          return <li className="text-contrast-row" key={swatch.id} title={`${swatch.name || `#${swatch.hex}`}: ${foreground === '#000000' ? 'black' : 'white'} text · WCAG 2.2 normal text`}>
             <span className="text-sample" aria-hidden="true" style={{ background: `#${swatch.hex}`, color: foreground }}>Aa</span>
             <div className="contrast-details"><span>#{swatch.hex}</span><span className="contrast-name">{swatch.name}</span></div>
             <div className="contrast-result"><span className="contrast-rating">{contrastRating(ratio)}</span><span>{ratioText(ratio)}</span></div>

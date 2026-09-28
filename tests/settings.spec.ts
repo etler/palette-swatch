@@ -35,11 +35,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     await expect(page.getByRole('button', { name: /^Change outline color/ })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('tab', { name: 'Settings', exact: true })).toBeFocused();
-    await page.getByRole('button', { name: 'Rename Color 1', exact: true }).click();
+    await page.getByRole('button', { name: 'Add name for Color 1', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Rename color' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(panel).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Rename Color 1', exact: true })).toBeFocused();
+    await expect(page.getByRole('button', { name: 'Add name for Color 1', exact: true })).toBeFocused();
     await page.locator('.swatch').first().focus();
     await page.keyboard.press('Tab');
     await page.keyboard.press('ArrowRight');
@@ -186,7 +186,7 @@ test('Shift+/ toggles settings without repeating or interrupting name entry', as
   await expect(panel).toBeVisible();
   await page.keyboard.press('Shift+Slash');
   await expect(panel).toHaveCount(0);
-  await page.getByRole('button', { name: 'Rename Color 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Add name for Color 1', exact: true }).click();
   await page.keyboard.press('Shift+?');
   await expect(page.getByRole('textbox', { name: 'Color Name' })).toHaveValue('?');
   await expect(panel).toHaveCount(0);

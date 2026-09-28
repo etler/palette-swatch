@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('keyboard swaps animate both swatches in either direction', async ({ page }) => {
-  const selected = page.getByRole('region', { name: 'Color 2', exact: true });
+  const selected = page.locator('.swatch').filter({ has: page.getByText('2A9D8F', { exact: true }) });
   await selected.click({ position: { x: 100, y: 200 } });
   for (const key of ['Control+ArrowRight', 'Control+ArrowLeft']) {
     const before = await page.locator('.swatch').evaluateAll(elements => Object.fromEntries(elements.map(element => [element.id, element.getBoundingClientRect().x])));
@@ -33,7 +33,7 @@ test('move and delete reveal focus on the selected swatch, and arrows continue n
   await page.keyboard.press('Control+ArrowRight');
   await page.keyboard.press('Delete');
   await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51']);
-  const third = page.getByRole('region', { name: 'Color 3', exact: true });
+  const third = page.locator('.swatch').filter({ has: page.getByText('E9C46A', { exact: true }) });
   await third.click({ position: { x: 100, y: 200 } });
   await expect(third).toHaveCSS('outline-style', 'none');
   await page.keyboard.press('Control+ArrowRight');
@@ -58,7 +58,7 @@ test('move and delete reveal focus on the selected swatch, and arrows continue n
   await page.keyboard.press('ArrowLeft');
   await expect(page.getByRole('button', { name: 'Edit Color 3 color E9C46A' })).toBeFocused();
   await page.keyboard.press('ArrowDown');
-  await expect(page.getByRole('button', { name: 'Rename Color 3' })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Add name for Color 3' })).toBeFocused();
   await page.keyboard.press('Control+ArrowLeft');
   await expect(page.locator('.hex-button')).toHaveText(['264653', 'E9C46A', '2A9D8F', 'F4A261', 'E76F51']);
   await page.keyboard.press('Delete');
@@ -84,7 +84,7 @@ test('Tab exposes a visible target and Escape clears it', async ({ page }) => {
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Add color at position 1', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
-  const first = page.getByRole('region', { name: 'Color 1', exact: true });
+  const first = page.locator('.swatch').filter({ has: page.getByText('264653', { exact: true }) });
   await expect(first).toBeFocused();
   await expect(first).toHaveCSS('outline-style', 'solid');
   await page.keyboard.press('Escape');
@@ -93,7 +93,7 @@ test('Tab exposes a visible target and Escape clears it', async ({ page }) => {
   await expect(first).toHaveCount(0);
   await page.keyboard.press('Control+z');
   await expect(page.locator('.swatch')).toHaveCount(5);
-  const third = page.getByRole('region', { name: 'Color 3', exact: true });
+  const third = page.locator('.swatch').filter({ has: page.getByText('E9C46A', { exact: true }) });
   await third.click({ position: { x: 100, y: 200 } });
   await page.keyboard.press('Tab');
   await expect(third).toBeFocused();
@@ -117,7 +117,7 @@ test('Tab exposes a visible target and Escape clears it', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Edit Color 3 color E9C46A' })).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await expect(third).toBeFocused();
-  const name = page.getByRole('button', { name: 'Rename Color 3' });
+  const name = page.getByRole('button', { name: 'Add name for Color 3' });
   await name.click();
   await page.getByRole('button', { name: 'Cancel rename' }).click();
   await expect(name).toBeFocused();
@@ -146,7 +146,7 @@ for (const key of ['Enter', 'Space']) {
       await page.keyboard.press('Escape');
     }
 
-    const name = page.getByRole('button', { name: 'Rename Color 3' });
+    const name = page.getByRole('button', { name: 'Add name for Color 3' });
     await name.click();
     await page.getByRole('button', { name: 'Cancel rename' }).click();
     await expect(name).toBeFocused();
@@ -165,7 +165,7 @@ for (const key of ['Enter', 'Space']) {
 }
 
 test('name popup cancels with Escape and accepts with Enter', async ({ page }) => {
-  const name = page.getByRole('button', { name: 'Rename Color 1', exact: true });
+  const name = page.getByRole('button', { name: 'Add name for Color 1', exact: true });
   await name.click();
   await page.keyboard.type('Cancelled');
   await page.keyboard.press('Escape');
@@ -399,7 +399,7 @@ test('the picker stays within a shorter desktop viewport while navigating channe
 });
 
 test('left and right wrap focus at both ends, including titles and a single swatch', async ({ page }) => {
-  const first = page.getByRole('region', { name: 'Color 1', exact: true });
+  const first = page.locator('.swatch').filter({ has: page.getByText('264653', { exact: true }) });
   const last = page.getByRole('region', { name: 'Color 5', exact: true });
   await first.click({ position: { x: 100, y: 200 } });
   await page.keyboard.press('ArrowLeft');
@@ -480,7 +480,7 @@ test('Tab interleaves add buttons with swatches while arrows skip them', async (
   await page.keyboard.press('Shift+Tab');
   await expect(page.getByRole('button', { name: 'Add color at position 2', exact: true })).toBeFocused();
   await page.keyboard.press('Enter');
-  const added = page.getByRole('region', { name: 'Color 6', exact: true });
+  const added = page.getByRole('region', { name: 'Color 2', exact: true });
   await expect(added).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await expect(page.getByRole('button', { name: 'Add color at position 2', exact: true })).toBeFocused();
@@ -532,15 +532,15 @@ test('Space on focused hex and name titles opens their popups', async ({ page })
     await expect(page.getByRole('dialog', { name: popup })).toBeVisible();
     await expect(page.locator('.swatch')).toHaveCount(5);
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('button', { name: popup === 'Color picker' ? 'Edit Color 2 color 2A9D8F' : 'Rename Color 2', exact: true })).toBeFocused();
+    await expect(page.getByRole('button', { name: popup === 'Color picker' ? 'Edit Color 2 color 2A9D8F' : 'Add name for Color 2', exact: true })).toBeFocused();
   }
 });
 
 for (const [hash, selected, remaining] of [
-  ['111111#222222#333333', 'Color 1', 'Color 2'],
-  ['111111#222222#333333', 'Color 2', 'Color 3'],
-  ['111111#222222#333333', 'Color 3', 'Color 2'],
-  ['111111', 'Color 1', 'Color 1'],
+  ['111111#222222#333333', 'Color 1', '222222'],
+  ['111111#222222#333333', 'Color 2', '333333'],
+  ['111111#222222#333333', 'Color 3', '222222'],
+  ['111111', 'Color 1', '111111'],
 ]) {
   test(`deleting mouse-selected ${selected} in ${hash} focuses ${remaining}`, async ({ page }) => {
     await page.goto(`/#${hash}`);
@@ -548,7 +548,7 @@ for (const [hash, selected, remaining] of [
     await swatch.click({ position: { x: 60, y: 180 } });
     await expect(swatch).toHaveCSS('outline-style', 'none');
     await page.keyboard.press('Delete');
-    const focused = page.getByRole('region', { name: remaining, exact: true });
+    const focused = page.locator('.swatch').filter({ has: page.getByText(remaining, { exact: true }) });
     await expect(focused).toBeFocused();
     await expect(focused).toHaveCSS('outline-style', 'solid');
   });

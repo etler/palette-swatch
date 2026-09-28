@@ -37,6 +37,8 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .hex-button { font-size: clamp(12px, 11cqw, 36px); font-weight: 650; letter-spacing: -.045em; line-height: 1.3; padding: 7px 12px; border-radius: 10px; transition: background 160ms; }
 .hex-button:hover, .name-button:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
 .name-button { max-width: 95%; font-size: clamp(10px, 4.8cqw, 15px); font-weight: 450; padding: 7px 10px; border-radius: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 160ms; }
+.name-placeholder { opacity: 0; }
+.swatch:hover .name-placeholder, .name-button:focus-visible .name-placeholder, .keyboard-navigation .name-button:focus .name-placeholder { opacity: .75; }
 .add-zone { --add-width: 48px; position: absolute; z-index: 4; left: calc(100% + var(--swatch-gap) / 2 - var(--add-width) / 2); top: var(--delete-zone-height); bottom: var(--delete-zone-height); width: var(--add-width); display: grid; place-items: center; cursor: grab; }
 .add-zone[data-edge="start"] { left: 0; }
 .add-zone[data-edge="end"] { left: calc(100% - var(--add-width)); }

@@ -49,7 +49,7 @@ test('metadata follows live color edits, cancellation, undo, and new swatches', 
   await expect(page.locator('.swatch-info')).toHaveCount(6);
   await page.getByRole('region', { name: 'Color 2', exact: true }).focus();
   await page.keyboard.press('Control+ArrowRight');
-  await expect(page.getByRole('region', { name: 'Color 2 color information', exact: true })).toContainText('42 157 143');
+  await expect(page.locator('.swatch').filter({ has: page.getByText('2A9D8F', { exact: true }) }).locator('.swatch-info')).toContainText('42 157 143');
 });
 
 test('metadata scrolls independently with wheel and keyboard and text gestures do not edit swatches', async ({ page }) => {

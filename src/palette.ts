@@ -5,17 +5,16 @@ export type Palette = readonly Swatch[];
 export type History = Readonly<{ past: readonly Palette[]; present: Palette; future: readonly Palette[] }>;
 export type Action = Readonly<{ type: 'commit'; palette: Palette }> | Readonly<{ type: 'undo' | 'redo' }>;
 export const defaults = ['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51'];
-export const serialize = (palette: Palette) => palette.map((swatch, index) => `#${swatch.hex}${swatch.name === `Color ${index + 1}` ? '' : `:${encodeURIComponent(swatch.name)}`}`).join('');
+export const serialize = (palette: Palette) => palette.map(swatch => `#${swatch.hex}${swatch.name ? `:${encodeURIComponent(swatch.name)}` : ''}`).join('');
 
 export function parse(hash: string): Palette {
   const parts = hash.split('#').filter(Boolean);
   const colors = parts.length && parts.every(value => /^[\da-f]{6}(?::.*)?$/i.test(value)) ? parts : defaults;
-  return colors.map((value, i) => {
+  return colors.map(value => {
     const hex = value.slice(0, 6).toUpperCase();
-    const fallback = `Color ${i + 1}`;
     try {
-      return { id: crypto.randomUUID(), hex, name: decodeURIComponent(value.slice(7)).trim() || fallback };
-    } catch { return { id: crypto.randomUUID(), hex, name: fallback }; }
+      return { id: crypto.randomUUID(), hex, name: decodeURIComponent(value.slice(7)).trim() };
+    } catch { return { id: crypto.randomUUID(), hex, name: '' }; }
   });
 }
 

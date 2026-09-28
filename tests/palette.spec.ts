@@ -82,7 +82,7 @@ test('the last swatch cannot be deleted', async ({ page }) => {
 });
 
 test('opening name and hex editors selects their text for immediate replacement', async ({ page }) => {
-  await page.getByRole('button', { name: 'Rename Color 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Add name for Color 1', exact: true }).click();
   await expect(page.getByLabel('Color Name', { exact: true })).toBeFocused();
   await page.keyboard.type('Ocean');
   await expect(page.getByLabel('Color Name', { exact: true })).toHaveValue('Ocean');
@@ -97,13 +97,13 @@ test('opening name and hex editors selects their text for immediate replacement'
 });
 
 test('names persist, additions and renames undo and redo', async ({ page }) => {
-  await page.getByRole('button', { name: 'Rename Color 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Add name for Color 1', exact: true }).click();
   await page.getByLabel('Color Name', { exact: true }).fill('Deep sea');
   await page.getByRole('button', { name: 'Save name' }).click();
   await expect(page).toHaveURL(/#264653:Deep%20sea#2A9D8F/);
   await expect(page.getByRole('button', { name: 'Rename Deep sea' })).toBeVisible();
   await page.keyboard.press('Control+z');
-  await expect(page.getByRole('button', { name: 'Rename Color 1', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add name for Color 1', exact: true })).toBeVisible();
   await page.keyboard.press('Control+Shift+z');
   await page.reload();
   await expect(page.getByRole('button', { name: 'Rename Deep sea' })).toBeVisible();
@@ -120,7 +120,7 @@ test('shared URLs restore names in a fresh browser context', async ({ browser })
   const page = await context.newPage();
   await page.goto('http://127.0.0.1:5173/#ABABAB:Meadow#121212#CDCDCD:Sky%20%231%3A%20caf%C3%A9');
   await expect(page.getByRole('button', { name: 'Rename Meadow' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Rename Color 2' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add name for Color 2' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Rename Sky #1: café' })).toBeVisible();
   await context.close();
 });
@@ -209,7 +209,7 @@ test('renaming a color immediately after editing keeps the new color', async ({ 
   await page.getByRole('button', { name: 'Edit Color 1 color 264653' }).click();
   await page.getByRole('textbox', { name: 'Hex color' }).fill('ABC123');
   await page.getByRole('textbox', { name: 'Hex color' }).press('Enter');
-  await page.getByRole('button', { name: 'Rename Color 1', exact: true }).click();
+  await page.getByRole('button', { name: 'Add name for Color 1', exact: true }).click();
   await page.getByLabel('Color Name', { exact: true }).fill('Meadow');
   await page.getByRole('button', { name: 'Save name' }).click();
   await expect(page.getByRole('button', { name: 'Edit Meadow color ABC123' })).toBeVisible();

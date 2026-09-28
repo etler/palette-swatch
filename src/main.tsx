@@ -300,8 +300,7 @@ function App() {
     };
   });
   const add = (position: number, hex = insertionColor(palette, position)) => {
-    const nextName = Math.max(0, ...palette.map(swatch => Number(/^Color (\d+)$/.exec(swatch.name)?.[1] ?? 0))) + 1;
-    const swatch = { id: crypto.randomUUID(), name: `Color ${nextName}`, hex };
+    const swatch = { id: crypto.randomUUID(), name: '', hex };
     commit([...palette.slice(0, position), swatch, ...palette.slice(position)]);
     if (keyboard) requestAnimationFrame(() => focusSwatch(swatch.id));
   };
@@ -383,12 +382,13 @@ function App() {
       }}>
       {previewPalette.map((swatch, index) => {
         const hex = swatch.hex;
+        const label = swatch.name || `Color ${index + 1}`;
         const position = arranged.findIndex(item => item.id === swatch.id);
         const isDragged = drag?.id === swatch.id;
         const exploring = editor.kind === 'shades' && editor.swatch.id === swatch.id;
         return <Fragment key={swatch.id}>
           {index === 0 && addControl(0)}
-          <section id={`swatch-${swatch.id}`} data-target="swatch" className={`swatch ${isDragged ? 'dragged' : ''}`} aria-label={swatch.name} aria-keyshortcuts="Control+ArrowLeft Control+ArrowRight Alt+ArrowLeft Alt+ArrowRight Delete Backspace" tabIndex={0}
+          <section id={`swatch-${swatch.id}`} data-target="swatch" className={`swatch ${isDragged ? 'dragged' : ''}`} aria-label={label} aria-keyshortcuts="Control+ArrowLeft Control+ArrowRight Alt+ArrowLeft Alt+ArrowRight Delete Backspace" tabIndex={0}
             style={{ ...paint(simulateVision(hex, vision)), '--offset-x': position % columns - index % columns, '--offset-y': Math.floor(position / columns) - Math.floor(index / columns), ...(isDragged ? { transform: `translate(${drag.x - drag.startX}px, ${drag.y - drag.startY}px)` } : {}) } as CSSProperties}>
             {exploring ? <div className="shade-list" role="group" aria-label="Choose a shade" onKeyDown={event => {
               if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
@@ -404,25 +404,25 @@ function App() {
               </button>)}
               <button className="shade-back icon-button" aria-label="Cancel shades" onClick={dismiss}><Icon name="close" /></button>
             </div> : <div className="swatch-label">
-              {showInfo && <div className="swatch-info" role="region" aria-label={`${swatch.name} color information`} tabIndex={0}
+              {showInfo && <div className="swatch-info" role="region" aria-label={`${label} color information`} tabIndex={0}
                 onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onCopy={event => event.stopPropagation()}>
                 <dl>{colorInfo(hex).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
               </div>}
               <div className="swatch-titles" ref={measureTitles}>
-                <button data-target="hex" className="hex-button" aria-label={`Edit ${swatch.name} color ${hex}`} onClick={event => {
+                <button data-target="hex" className="hex-button" aria-label={`Edit ${label} color ${hex}`} onClick={event => {
                   const bounds = event.currentTarget.getBoundingClientRect();
                   close();
                   setEditor({ kind: 'color', swatch: { ...swatch, hex }, values: coordinates(hex, mode), x: bounds.left + bounds.width / 2 });
                 }}>{hex}</button>
-                <button data-target="name" className="name-button" aria-label={`Rename ${swatch.name}`} onClick={event => {
+                <button data-target="name" className="name-button" aria-label={swatch.name ? `Rename ${swatch.name}` : `Add name for ${label}`} onClick={event => {
                   const bounds = event.currentTarget.getBoundingClientRect();
                   close();
                   setEditor({ kind: 'name', swatch: { ...swatch, hex }, x: bounds.left + bounds.width / 2 });
-                }}>{swatch.name}</button>
+                }}><span className={swatch.name ? undefined : 'name-placeholder'}>{swatch.name || 'Add Name'}</span></button>
               </div>
             </div>}
             {!drag && editor.kind === 'closed' && palette.length > 1 && ['top', 'bottom'].map(edge => <div key={edge} className={`delete-zone delete-zone-${edge}`}>
-              <button className="delete-color" tabIndex={edge === 'bottom' ? -1 : undefined} aria-label={`Delete ${swatch.name}`} onClick={() => remove(swatch.id)}><Icon name="close" /></button>
+              <button className="delete-color" tabIndex={edge === 'bottom' ? -1 : undefined} aria-label={`Delete ${label}`} onClick={() => remove(swatch.id)}><Icon name="close" /></button>
             </div>)}
           </section>
           {addControl(index + 1)}
@@ -469,13 +469,11 @@ function App() {
       {editor.kind === 'name' ? <form className="rename-form" onSubmit={event => {
         event.preventDefault();
         const name = String(new FormData(event.currentTarget).get('name')).trim();
-        if (name) {
-          commit(update({ ...editor.swatch, name }));
-          setBookmarks(current => current.has(editor.swatch.hex) ? new Map([...current, [editor.swatch.hex, name]]) : current);
-          dismiss();
-        }
+        commit(update({ ...editor.swatch, name }));
+        setBookmarks(current => current.has(editor.swatch.hex) ? new Map([...current, [editor.swatch.hex, name]]) : current);
+        dismiss();
       }}><div className="popup-heading"><label htmlFor="name-input">Color Name</label><button type="button" className="icon-button" aria-label="Cancel rename" onClick={dismiss}><Icon name="close" /></button></div>
-        <input id="name-input" name="name" defaultValue={editor.swatch.name} maxLength={80} required />
+        <input id="name-input" name="name" defaultValue={editor.swatch.name} maxLength={80} />
         <button className="save-button" type="submit">Save name<Icon name="check" /></button>
       </form> : <Picker bookmarked={bookmarks.has(toHex(mode, editor.values))} onBookmark={hex => {
         setBookmarks(current => current.has(hex)

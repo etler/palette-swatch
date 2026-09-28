@@ -67,9 +67,9 @@ describe('color information', () => {
 
 describe('palette editing', () => {
   const palette = parse('#ABC123#123ABC#ABABAB#121212');
-  it('preserves URL order and uses simple numbered names', () => {
+  it('preserves URL order and leaves unnamed colors blank', () => {
     expect(serialize(palette)).toBe('#ABC123#123ABC#ABABAB#121212');
-    expect(palette.map(item => item.name)).toEqual(['Color 1', 'Color 2', 'Color 3', 'Color 4']);
+    expect(palette.map(item => item.name)).toEqual(['', '', '', '']);
     expect(parse('#not-a-color')).toHaveLength(5);
   });
   it('inserts a swatch at its destination while preserving intervening order and identity', () => {
@@ -82,11 +82,12 @@ describe('palette editing', () => {
   });
   it('shares custom names and safely encodes URL delimiters and Unicode', () => {
     const named = parse('#ABABAB:Meadow#121212#CDCDCD:Evening');
-    expect(named.map(swatch => swatch.name)).toEqual(['Meadow', 'Color 2', 'Evening']);
+    expect(named.map(swatch => swatch.name)).toEqual(['Meadow', '', 'Evening']);
     expect(serialize(named)).toBe('#ABABAB:Meadow#121212#CDCDCD:Evening');
     const custom = [{ ...named[0], name: 'Sky #1: café / 雨 100%' }];
     expect(parse(serialize(custom))[0].name).toBe(custom[0].name);
-    expect(parse('#ABABAB:%invalid')[0].name).toBe('Color 1');
+    expect(parse('#ABABAB:%invalid')[0].name).toBe('');
+    expect(serialize(parse('#ABABAB:Color%201'))).toBe('#ABABAB:Color%201');
   });
   it('undoes, redoes, and discards the redo branch after another edit', () => {
     const initial = { past: [], present: palette, future: [] };

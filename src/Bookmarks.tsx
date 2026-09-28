@@ -9,7 +9,7 @@ export function useBookmarks(notify: (message: string) => void) {
       if (!Array.isArray(stored)) return new Map();
       return new Map(stored.flatMap(entry =>
         Array.isArray(entry) && entry.length === 2 && typeof entry[0] === 'string' && /^[\da-f]{6}$/i.test(entry[0])
-          && typeof entry[1] === 'string' && entry[1].trim()
+          && typeof entry[1] === 'string'
           ? [[entry[0].toUpperCase(), entry[1].trim().slice(0, 80)] as const] : []));
     } catch {
       return new Map();
@@ -34,11 +34,11 @@ export function Bookmarks({ bookmarks, onRemove, onAdd }: {
     <h2>Bookmarks</h2>
     {bookmarks.size ? <ul className="bookmark-grid">
       {[...bookmarks].map(([hex, name]) => <li key={hex} style={{ background: `#${hex}`, color: ink(hex) }}>
-        <button type="button" className="bookmark-add" aria-label={`Add ${name} ${hex} to palette`} onClick={() => onAdd(hex, name)}>
+        <button type="button" className="bookmark-add" aria-label={`Add ${name ? `${name} ` : ''}${hex} to palette`} onClick={() => onAdd(hex, name)}>
           <span className="bookmark-hex">{hex}</span>
           <span className="bookmark-name" title={name}>{name}</span>
         </button>
-        <button type="button" className="delete-color bookmark-remove" aria-label={`Remove bookmark ${name} ${hex}`} onClick={event => {
+        <button type="button" className="delete-color bookmark-remove" aria-label={`Remove bookmark ${name ? `${name} ` : ''}${hex}`} onClick={event => {
           const item = event.currentTarget.closest('li');
           const neighbor = item?.nextElementSibling ?? item?.previousElementSibling;
           const focus = neighbor?.querySelector<HTMLButtonElement>('.bookmark-remove') ?? event.currentTarget.closest<HTMLElement>('[role="tabpanel"]');

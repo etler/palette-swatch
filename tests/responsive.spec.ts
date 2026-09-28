@@ -39,8 +39,8 @@ test('empty cells follow outline color, append an extrapolated color, and suppor
 });
 
 test('keyboard navigation and swaps preserve palette order across row boundaries', async ({ page }) => {
-  const third = page.getByRole('region', { name: 'Color 3', exact: true });
-  const fourth = page.getByRole('region', { name: 'Color 4', exact: true });
+  const third = page.locator('.swatch').filter({ has: page.getByText('E9C46A', { exact: true }) });
+  const fourth = page.locator('.swatch').filter({ has: page.getByText('F4A261', { exact: true }) });
   await third.click({ position: { x: 65, y: 100 } });
   await page.keyboard.press('ArrowRight');
   await expect(third).toBeFocused();
@@ -63,7 +63,7 @@ test('keyboard navigation and swaps preserve palette order across row boundaries
 
 test('dragging between rows shifts all intervening swatches in linear order', async ({ page }) => {
   const first = page.getByRole('region', { name: 'Color 1', exact: true });
-  const fourth = page.getByRole('region', { name: 'Color 4', exact: true });
+  const fourth = page.locator('.swatch').filter({ has: page.getByText('F4A261', { exact: true }) });
   await page.mouse.move(65, 100);
   await page.mouse.down();
   await page.mouse.move(195, 522, { steps: 10 });
@@ -92,11 +92,11 @@ test('insertion margins and title controls remain usable in 128px rows', async (
   const margin = page.getByRole('button', { name: 'Add color at position 5', exact: true });
   await margin.click();
   await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'EE8959', 'E76F51']);
-  const name = page.getByRole('button', { name: 'Rename Color 5', exact: true });
+  const name = page.getByRole('button', { name: 'Add name for Color 6', exact: true });
   await name.click();
   await expect(page.getByRole('textbox', { name: 'Color Name' })).toBeFocused();
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Edit Color 5 color E76F51' }).click();
+  await page.getByRole('button', { name: 'Edit Color 6 color E76F51' }).click();
   await expect(page.getByRole('textbox', { name: 'Hex color' })).toBeFocused();
 });
 

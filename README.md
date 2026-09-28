@@ -33,7 +33,7 @@ Swatches use the fewest rows needed to stay at least 100px wide, with the column
 - Drag a swatch to insert it at a new position, shifting the intervening swatches one slot. Wrapped rows use the same left-to-right palette order. Dragging keeps the entire swatch inside the visible palette area, including outline insets and scroll position. Double-click its color area to insert a new color to its right using the same blend/extrapolation rules as +.
 - The picker’s bottom-left control changes the mode for all swatches. A channel’s shades button expands that swatch into 25 choices; Escape cancels.
 - A drag commits on release. A color picker session, including shade exploration, is one undoable edit. Clicking outside the picker accepts its current color.
-- Colors and names are stored in the URL as `#ABABAB:Meadow#121212#CDCDCD:Evening`. Names are optional and URL-encoded. A missing name defaults to `Color 1`, `Color 2`, etc. Reordering preserves each swatch’s name.
+- Colors and names are stored in the URL as `#ABABAB:Meadow#121212#CDCDCD:Evening`. Names are optional and URL-encoded. Unnamed colors show no title; hovering a swatch or focusing its name control reveals “Add Name.” The name field starts empty and can be cleared to remove a name. Reordering preserves each custom name.
 
 HSB and HSL include a two-dimensional picker. Every mode includes numeric fields and canvas-rendered channel gradients. White markers preserve the opening color. CMYK is an unprofiled screen approximation. LAB uses D50; out-of-sRGB colors clip to the same hex values shown in previews and saved in the URL.
 
