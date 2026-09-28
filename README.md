@@ -17,7 +17,7 @@ npm run dev
 
 ## Responsive experiment
 
-Swatches use the fewest rows needed to stay at least 100px wide, with the column count spread evenly across those rows. Rows fill left to right; any unused slots at the bottom right merge into one cell with a centered + button that appends a color. This empty cell follows the outline color. Rows share the window height; long palettes scroll once rows reach 160px tall. Keyboard navigation keeps the original palette order across row boundaries.
+Swatches use the fewest rows needed to stay at least 100px wide, with the column count spread evenly across those rows. Rows fill left to right; any unused slots at the bottom right merge into one cell with a centered + button that appends a color. This empty cell follows the outline color. Rows share the window height; long palettes scroll once rows reach 128px tall (200px with color info enabled). Keyboard navigation keeps the original palette order across row boundaries.
 
 ## Interactions
 
@@ -26,7 +26,7 @@ Swatches use the fewest rows needed to stay at least 100px wide, with the column
 - Insertion blends neighboring colors in sRGB. At the outer edges, it extrapolates one step beyond the last two colors, clipping channels to the valid range. With one swatch, it repeats that color.
 - Hover near the top or bottom of a swatch to reveal its delete button. The last swatch is kept.
 - The bottom-left corner cycles edge to edge, a thick outside border, and thinner outlines with equal-width outer edges and column gaps. The bottom-right ink-drop button toggles white/black, revealing the outside border from edge to edge. The ink fill follows the outline color. All four corner controls have Tab stops.
-- The top-left info toggle shows selectable metadata above each swatch's titles. Each readout scrolls independently with faded edges. Tab can focus a readout for native keyboard scrolling; text selection and copying do not edit the palette. Turning info off restores the original title placement. The info toggle is remembered in this browser.
+- The top-left info toggle shows selectable metadata above each swatch's titles. Titles keep their normal position until the info needs the space below; metadata scrolls after that space is used. Each readout scrolls independently with faded edges. Tab can focus a readout for native keyboard scrolling; text selection and copying do not edit the palette. Turning info off restores the original title placement. The info toggle is remembered in this browser.
 - The top-right hamburger button toggles a persistent sidebar on the right. Its cog tab contains Settings; its keyboard tab lists shortcuts with Mac or Windows/Linux key labels based on the browser’s reported platform. Left/right arrows switch tabs, and switching tabs keeps unsaved settings. It reduces the palette area, rewrapping swatches while keeping them usable. Set minimum swatch width (60–1000px), window outline width, and border outline width (1–120px). Zero or blank outline widths use the existing responsive defaults. Save or Enter applies and remembers the values locally without closing the panel; Escape within the panel, the close button, or the menu button closes it and discards unsaved edits. Reset defaults restores the original values when saved.
 - Borders animate when changing color, expanding, and shrinking, taking up layout space inside the window; the swatches and their controls resize to fit. Reduced-motion settings skip the animation.
 - The outline mode and white/black preference are remembered in this browser using localStorage.

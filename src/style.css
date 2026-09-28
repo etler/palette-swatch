@@ -13,25 +13,27 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .app-layout { display: flex; }
 .palette-workspace { flex: 1; min-width: 0; contain: layout; }
-.palette { --min-row-height: 160px; --delete-zone-height: clamp(36px, 20%, 64px); --outer-border: clamp(32px, 4vw, 48px); --swatch-border: 16px; --outline-transition: 350ms ease; position: relative; display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(var(--min-row-height), 1fr)); gap: var(--swatch-gap); background: var(--outline-color); width: 100%; height: 100dvh; min-height: 340px; overflow-x: hidden; overflow-y: auto; border: 0 solid var(--outline-color); transition: border-width var(--outline-transition), --swatch-gap var(--outline-transition), border-color var(--outline-transition), background-color var(--outline-transition); }
+.palette { --min-row-height: 128px; --delete-zone-height: clamp(36px, 20%, 64px); --outer-border: clamp(32px, 4vw, 48px); --swatch-border: 16px; --outline-transition: 350ms ease; position: relative; display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(var(--min-row-height), 1fr)); gap: var(--swatch-gap); background: var(--outline-color); width: 100%; height: 100dvh; min-height: var(--min-row-height); overflow-x: hidden; overflow-y: auto; border: 0 solid var(--outline-color); transition: border-width var(--outline-transition), --swatch-gap var(--outline-transition), border-color var(--outline-transition), background-color var(--outline-transition); }
+.palette.has-info { --min-row-height: 200px; }
 .palette[data-outline="outer"] { border-width: var(--outer-border); }
 .palette[data-outline="swatches"] { border-width: var(--swatch-border); --swatch-gap: var(--swatch-border); }
 .swatch { --swap-duration: 420; --swap-easing: cubic-bezier(.22, 1.25, .35, 1); position: relative; min-width: 0; min-height: 0; background: var(--color); color: var(--ink); transform: translate(calc(var(--offset-x) * (100% + var(--swatch-gap))), calc(var(--offset-y) * (100% + var(--swatch-gap)))); transition: transform calc(var(--swap-duration) * 1ms) var(--swap-easing); touch-action: none; cursor: grab; container-type: size; }
 @supports (color: contrast-color(red)) { .swatch, .shade { color: contrast-color(var(--color)); } }
 .swatch.dragged { z-index: 3; transition: none; cursor: grabbing; box-shadow: 0 0 50px #0002; }
 .is-dragging { cursor: grabbing; }
-.swatch-label { position: absolute; top: var(--delete-zone-height); bottom: var(--delete-zone-height); left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 0 5px; user-select: none; }
+.swatch-label { --label-gap: 5px; --extra-top-space: clamp(0px, calc(100cqh - var(--min-row-height)), 50cqh); position: absolute; top: var(--delete-zone-height); bottom: var(--delete-zone-height); left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--label-gap); padding: 0 5px; user-select: none; }
 .swatch-label::before, .swatch-label::after { content: ""; flex: 1 1 0; min-height: 0; }
-.swatch-label::before { flex-basis: clamp(0px, calc(100cqh - var(--min-row-height)), 50cqh); }
+.swatch-label::before { flex-basis: var(--extra-top-space); }
 .has-info .swatch { touch-action: pan-y; }
-.has-info .swatch-label::before, .has-info .swatch-label::after { display: none; }
-.has-info .swatch-label > button { flex-shrink: 0; }
-.swatch-info { flex: 0 1 auto; min-height: 0; align-self: stretch; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, currentColor 10%, transparent) transparent; margin-top: auto; margin-bottom: 8px; padding: 12px clamp(8px, 5cqw, 24px); cursor: text; user-select: text; text-align: center; font-size: clamp(11px, 5cqw, 13px); line-height: 1.5; font-variant-numeric: tabular-nums; -webkit-mask-image: linear-gradient(transparent, black min(12px, 20%), black max(calc(100% - 12px), 80%), transparent); mask-image: linear-gradient(transparent, black min(12px, 20%), black max(calc(100% - 12px), 80%), transparent); }
+.swatch-titles { display: flex; flex-direction: column; align-items: center; gap: var(--label-gap); width: 100%; flex-shrink: 0; }
+.has-info .swatch-label::before { display: none; }
+.has-info .swatch-label::after { flex: 0 1 max(0px, calc((100% - var(--title-height) - 2 * var(--label-gap) - var(--extra-top-space)) / 2)); }
+.swatch-info { --info-gap: 8px; flex: 0 0 auto; min-height: 0; max-height: calc(100% - var(--title-height) - 2 * var(--label-gap) - var(--info-gap)); align-self: stretch; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; scrollbar-color: color-mix(in srgb, currentColor 10%, transparent) transparent; margin-top: auto; margin-bottom: var(--info-gap); padding: 12px clamp(8px, 5cqw, 24px); cursor: text; user-select: text; text-align: center; font-size: clamp(11px, 5cqw, 13px); line-height: 1.5; font-variant-numeric: tabular-nums; -webkit-mask-image: linear-gradient(transparent, black min(12px, 20%), black max(calc(100% - 12px), 80%), transparent); mask-image: linear-gradient(transparent, black min(12px, 20%), black max(calc(100% - 12px), 80%), transparent); }
 .swatch-info:focus-visible { outline: 2px solid currentColor; outline-offset: -3px; }
-.swatch-info dl { margin: 0; display: grid; gap: 16px; }
+.swatch-info dl { margin: 0; display: grid; gap: 16px; opacity: .75; }
 .swatch-info dt { font-size: .85em; font-weight: 500; overflow-wrap: anywhere; }
 .swatch-info dd { margin: 3px 0 0; font-weight: 600; overflow-wrap: anywhere; }
-@container (max-height: 240px) { .has-info .hex-button, .has-info .name-button { padding-block: 2px; } .swatch-info { margin-bottom: 0; } }
+@container (max-height: 320px) { .has-info .hex-button, .has-info .name-button { padding-block: 2px; } .swatch-info { --info-gap: 0px; } }
 .hex-button { font-size: clamp(12px, 11cqw, 36px); font-weight: 650; letter-spacing: -.045em; line-height: 1.3; padding: 7px 12px; border-radius: 10px; transition: background 160ms; }
 .hex-button:hover, .name-button:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
 .name-button { max-width: 95%; font-size: clamp(10px, 4.8cqw, 15px); font-weight: 450; padding: 7px 10px; border-radius: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background 160ms; }

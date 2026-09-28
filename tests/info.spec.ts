@@ -86,13 +86,30 @@ test('minimum-height wrapped swatches keep both titles and a scrollable metadata
       if (!info || !name) throw new Error('Expected a title and metadata in every swatch');
       const title = name.getBoundingClientRect();
       const bounds = info.getBoundingClientRect();
-      return { height: bounds.height, titleTop: title.top, top: bounds.top, bottom: bounds.bottom, swatchBottom: element.getBoundingClientRect().bottom, overflow: info.scrollHeight > info.clientHeight, width: info.scrollWidth, clientWidth: info.clientWidth };
+      const style = getComputedStyle(info);
+      const lines = (info.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / parseFloat(style.lineHeight);
+      return { lines, titleTop: title.top, top: bounds.top, bottom: bounds.bottom, swatchBottom: element.getBoundingClientRect().bottom, overflow: info.scrollHeight > info.clientHeight, width: info.scrollWidth, clientWidth: info.clientWidth };
     });
-    expect(geometry.height).toBeGreaterThan(30);
+    expect(geometry.lines).toBeGreaterThanOrEqual(2.5);
     expect(geometry.bottom).toBeLessThanOrEqual(geometry.titleTop);
     expect(geometry.bottom).toBeLessThanOrEqual(geometry.swatchBottom);
     expect(geometry.overflow).toBe(true);
     expect(geometry.width).toBe(geometry.clientWidth);
+  }
+});
+
+test('short swatches keep a scrollable info area without shrinking titles', async ({ page }) => {
+  await page.goto('/#264653');
+  await page.getByRole('button', { name: 'Color information', exact: true }).click();
+  const swatch = page.locator('.swatch');
+  const titleSize = await swatch.locator('.hex-button').evaluate(element => getComputedStyle(element).fontSize);
+  for (const height of [200, 201, 320, 321, 400]) {
+    await page.setViewportSize({ width: 1440, height });
+    await expect.poll(() => swatch.locator('.swatch-info').evaluate(element => {
+      const style = getComputedStyle(element);
+      return (element.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / parseFloat(style.lineHeight);
+    })).toBeGreaterThan(0);
+    await expect(swatch.locator('.hex-button')).toHaveCSS('font-size', titleSize);
   }
 });
 
@@ -123,3 +140,28 @@ test('invalid or unavailable info storage defaults to off and leaves the toggle 
   await toggle.click();
   await expect(page.locator('.swatch-info')).toHaveCount(5);
 });
+
+for (const [height, moves, scrolls] of [[1200, false, false], [800, true, false], [700, true, true]] as const) {
+  test(`info uses space above the title before borrowing below at ${height}px`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height });
+    const title = page.locator('.hex-button').first();
+    const originalTop = await title.evaluate(element => element.getBoundingClientRect().top);
+    await page.getByRole('button', { name: 'Color information', exact: true }).click();
+    const info = page.locator('.swatch-info').first();
+    const geometry = await info.evaluate(element => ({
+      top: element.getBoundingClientRect().top,
+      bottom: element.getBoundingClientRect().bottom,
+      scrolls: element.scrollHeight > element.clientHeight + 1,
+    }));
+    const titleTop = await title.evaluate(element => element.getBoundingClientRect().top);
+    if (moves) {
+      expect(titleTop).toBeGreaterThan(originalTop);
+      expect(geometry.top).toBeCloseTo(64, 0);
+    } else {
+      expect(titleTop).toBeCloseTo(originalTop, 1);
+      expect(geometry.top).toBeGreaterThan(64);
+    }
+    expect(geometry.scrolls).toBe(scrolls);
+    expect(titleTop - geometry.bottom).toBeCloseTo(13, 0);
+  });
+}

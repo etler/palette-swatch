@@ -76,15 +76,16 @@ test('dragging between rows shifts all intervening swatches in linear order', as
   await expect(page.locator('.hex-button')).toHaveText(colors);
 });
 
-test('insertion margins and title controls remain usable in 160px rows', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 340 });
+test('insertion margins and title controls remain usable in 128px rows', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 320 });
   await page.keyboard.press('Control+Space');
   await expect(page.getByRole('main')).toHaveCSS('border-top-width', '32px');
-  await expect(page.locator('.swatch').first()).toHaveCSS('height', '160px');
+  await expect(page.locator('.swatch').first()).toHaveCSS('height', '128px');
   const clearances = await page.locator('.swatch').first().evaluate(element => {
-    const [hex, name, top, bottom] = ['.hex-button', '.name-button', '.delete-zone-top', '.delete-zone-bottom'].map(selector => element.querySelector(selector)?.getBoundingClientRect());
-    if (!hex || !name || !top || !bottom) throw new Error('Expected swatch titles and hover zones');
-    return [hex.top - top.bottom, bottom.top - name.bottom];
+    const [hex, name] = ['.hex-button', '.name-button'].map(selector => element.querySelector(selector)?.getBoundingClientRect());
+    if (!hex || !name) throw new Error('Expected swatch titles');
+    const bounds = element.getBoundingClientRect();
+    return [hex.top - bounds.top, bounds.bottom - name.bottom];
   });
   for (const clearance of clearances) expect(clearance).toBeGreaterThanOrEqual(0);
   expect(clearances[0]).toBeCloseTo(clearances[1], 1);
@@ -99,6 +100,16 @@ test('insertion margins and title controls remain usable in 160px rows', async (
   await expect(page.getByRole('textbox', { name: 'Hex color' })).toBeFocused();
 });
 
+
+test('title padding stays the same at minimum height with info hidden', async ({ page }) => {
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const titles = page.locator('.swatch').first().locator('.hex-button, .name-button');
+    const padding = await titles.evaluateAll(elements => elements.map(element => getComputedStyle(element).padding));
+    await page.setViewportSize({ width, height: 128 });
+    await expect.poll(() => titles.evaluateAll(elements => elements.map(element => getComputedStyle(element).padding))).toEqual(padding);
+  }
+});
 
 test('keyboard focus scrolls additional rows into view', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 440 });
@@ -184,4 +195,25 @@ test('titles move below center as rows grow, while staying clear of delete contr
     expect(padding.above).toBeGreaterThan(padding.below);
     expect(padding.clearance).toBeGreaterThanOrEqual(0);
   }
+});
+
+test('hidden info releases row height, and enabling it restores room for metadata', async ({ page }) => {
+  await page.setViewportSize({ width: 400, height: 384 });
+  await page.goto('/#111111#222222#333333#444444#555555#666666#777777#888888#999999#AAAAAA#BBBBBB#CCCCCC');
+  const swatch = page.locator('.swatch').first();
+  const palette = page.getByRole('main');
+  await expect(swatch).toHaveCSS('height', '128px');
+  expect(await palette.evaluate(element => element.scrollHeight)).toBe(384);
+  await page.getByRole('button', { name: 'Color information', exact: true }).click();
+  await expect(swatch).toHaveCSS('height', '200px');
+  expect(await palette.evaluate(element => element.scrollHeight)).toBe(600);
+  await page.getByRole('button', { name: 'Color information', exact: true }).click();
+  await expect(swatch).toHaveCSS('height', '128px');
+  await page.setViewportSize({ width: 1440, height: 128 });
+  await expect(swatch).toHaveCSS('height', '128px');
+  await expect.poll(() => swatch.evaluate(element => {
+    const title = element.querySelector('.swatch-titles')!.getBoundingClientRect();
+    const bounds = element.getBoundingClientRect();
+    return Math.min(title.top - bounds.top, bounds.bottom - title.bottom);
+  })).toBeGreaterThanOrEqual(0);
 });

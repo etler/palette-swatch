@@ -17,6 +17,15 @@ function focusSwatch(id: string, part = 'swatch') {
   (part === 'swatch' ? swatch : swatch?.querySelector<HTMLElement>(`[data-target="${part}"]`))?.focus();
 }
 
+function measureTitles(element: HTMLDivElement | null) {
+  if (!element) return;
+  const measure = () => element.parentElement?.style.setProperty('--title-height', `${element.getBoundingClientRect().height}px`);
+  measure();
+  const observer = new ResizeObserver(measure);
+  observer.observe(element);
+  return () => observer.disconnect();
+}
+
 function App() {
   const [history, dispatch] = useReducer(historyReducer, location.hash, hash => ({ past: [], present: parse(hash), future: [] }));
   const [mode, setMode] = useState<Mode>('HSB');
@@ -382,16 +391,18 @@ function App() {
                 onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onCopy={event => event.stopPropagation()}>
                 <dl>{colorInfo(hex).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
               </div>}
-              <button data-target="hex" className="hex-button" aria-label={`Edit ${swatch.name} color ${hex}`} onClick={event => {
-                const bounds = event.currentTarget.getBoundingClientRect();
-                close();
-                setEditor({ kind: 'color', swatch: { ...swatch, hex }, values: coordinates(hex, mode), x: bounds.left + bounds.width / 2 });
-              }}>{hex}</button>
-              <button data-target="name" className="name-button" aria-label={`Rename ${swatch.name}`} onClick={event => {
-                const bounds = event.currentTarget.getBoundingClientRect();
-                close();
-                setEditor({ kind: 'name', swatch: { ...swatch, hex }, x: bounds.left + bounds.width / 2 });
-              }}>{swatch.name}</button>
+              <div className="swatch-titles" ref={measureTitles}>
+                <button data-target="hex" className="hex-button" aria-label={`Edit ${swatch.name} color ${hex}`} onClick={event => {
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  close();
+                  setEditor({ kind: 'color', swatch: { ...swatch, hex }, values: coordinates(hex, mode), x: bounds.left + bounds.width / 2 });
+                }}>{hex}</button>
+                <button data-target="name" className="name-button" aria-label={`Rename ${swatch.name}`} onClick={event => {
+                  const bounds = event.currentTarget.getBoundingClientRect();
+                  close();
+                  setEditor({ kind: 'name', swatch: { ...swatch, hex }, x: bounds.left + bounds.width / 2 });
+                }}>{swatch.name}</button>
+              </div>
             </div>}
             {!drag && editor.kind === 'closed' && palette.length > 1 && ['top', 'bottom'].map(edge => <div key={edge} className={`delete-zone delete-zone-${edge}`}>
               <button className="delete-color" tabIndex={edge === 'bottom' ? -1 : undefined} aria-label={`Delete ${swatch.name}`} onClick={() => remove(swatch.id)}><Icon name="close" /></button>
