@@ -60,7 +60,7 @@ for (const modifier of ['Control', 'Meta']) {
   }
 }
 
-for (const corner of ['top-left', 'bottom-left', 'top-right', 'bottom-right']) {
+for (const corner of ['top-left', 'bottom-left', 'top-right']) {
   test(`${corner} outline control performs the same action on every click, including a double-click`, async ({ page }) => {
     const palette = page.getByRole('main');
     const button = page.locator(`.outline-zone-${corner} button`);
@@ -84,7 +84,7 @@ for (const corner of ['top-left', 'bottom-left', 'top-right', 'bottom-right']) {
   });
 }
 
-test('Tab reaches both top outline actions without repeating the bottom controls', async ({ page }) => {
+test('Tab reaches both top outline actions then settings without repeating the bottom mode control', async ({ page }) => {
   const palette = page.getByRole('main');
   await page.getByRole('button', { name: 'Add color at position 6', exact: true }).focus();
   await page.keyboard.press('Tab');
@@ -98,6 +98,8 @@ test('Tab reaches both top outline actions without repeating the bottom controls
   await page.clock.runFor(400);
   await expect(palette).toHaveAttribute('data-outline', 'outer');
   await expect(palette).toHaveCSS('--outline-color', 'black');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.locator('.outline-button:focus')).toHaveCount(0);
 });
@@ -233,7 +235,7 @@ test('outline edges, gaps, and ink drops transition together between white and b
       const animations = await palette.evaluate(element => [element, ...element.querySelectorAll('.outline-ink')].flatMap(target => target.getAnimations()).filter(animation =>
         animation instanceof CSSTransition && ['background-color', 'border-top-color', 'fill'].includes(animation.transitionProperty)
       ).map(animation => { animation.pause(); animation.currentTime = 175; return animation; }).length);
-      expect(animations).toBe(4);
+      expect(animations).toBe(3);
       const colors = await palette.evaluate(element => {
         const style = getComputedStyle(element);
         return [style.borderTopColor, style.backgroundColor, ...Array.from(element.querySelectorAll('.outline-ink'), ink => getComputedStyle(ink).fill)];

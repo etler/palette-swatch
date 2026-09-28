@@ -3,9 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { clamp, coordinates, ink, parseHex, shades, toHex, type Mode } from './color';
 import { historyReducer, insertionColor, move, parse, persist, type Palette, type Swatch } from './palette';
 import { Icon, Picker, Popup } from './Picker';
+import { readSettings, SettingsDialog } from './Settings';
 import './style.css';
 
 type Editor = Readonly<{ kind: 'closed' }>
+  | Readonly<{ kind: 'settings' }>
   | Readonly<{ kind: 'name'; swatch: Swatch; x: number }>
   | Readonly<{ kind: 'color'; swatch: Swatch; x: number; values: readonly number[] }>
   | Readonly<{ kind: 'shades'; swatch: Swatch; values: readonly number[]; channel: number }>;
@@ -23,6 +25,14 @@ function App() {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [notice, setNotice] = useState('');
   const [keyboard, setKeyboard] = useState(false);
+  const [settings, setSettings] = useState(readSettings);
+  useEffect(() => {
+    try {
+      localStorage.setItem('palette:settings', JSON.stringify(settings));
+    } catch {
+      // Settings still work when browser storage is blocked.
+    }
+  }, [settings]);
   const paletteElement = useRef<HTMLElement>(null);
   const [capacity, setCapacity] = useState(1);
   useLayoutEffect(() => {
@@ -30,13 +40,13 @@ function App() {
     if (!element) return;
     const measure = () => {
       const gap = parseFloat(getComputedStyle(element).columnGap);
-      setCapacity(Math.max(1, Math.floor((element.clientWidth + gap) / (100 + gap))));
+      setCapacity(Math.max(1, Math.floor((element.clientWidth + gap) / (settings.minimumSwatchWidth + gap))));
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, []);
+  }, [settings.minimumSwatchWidth]);
   const [outline, setOutline] = useState<{ readonly mode: 'none' | 'outer' | 'swatches'; readonly color: 'white' | 'black' }>(() => {
     try {
       const [mode, color] = (localStorage.getItem('palette:outline') ?? '').split(':');
@@ -92,7 +102,7 @@ function App() {
     }
   };
   const dismiss = () => {
-    if (editor.kind !== 'closed') {
+    if (editor.kind !== 'closed' && editor.kind !== 'settings') {
       const id = editor.swatch.id;
       const part = editor.kind === 'name' ? 'name' : 'hex';
       requestAnimationFrame(() => focusSwatch(id, part));
@@ -170,7 +180,7 @@ function App() {
         } else swatchSpace.current = { id: selected.id, time: event.timeStamp };
         return;
       }
-      if (!keyboard && !event.ctrlKey && !event.metaKey && !event.altKey && ['Enter', ' '].includes(event.key)) {
+      if (!keyboard && !event.ctrlKey && !event.metaKey && !event.altKey && ['Enter', ' '].includes(event.key) && (index >= 0 || active === document.body)) {
         event.preventDefault();
         setKeyboard(true);
         focusSwatch(palette[Math.max(0, index)].id, active instanceof HTMLElement ? active.dataset.target : undefined);
@@ -248,7 +258,7 @@ function App() {
   };
   return <>
     <h1 className="sr-only">Palette explorer</h1>
-    <main ref={paletteElement} className={`palette ${drag ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter" style={{ '--columns': columns, '--rows': rows, '--outline-color': outline.color } as CSSProperties}
+    <main ref={paletteElement} className={`palette ${drag ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter" style={{ '--columns': columns, '--rows': rows, '--outline-color': outline.color, '--outer-border': settings.windowOutlineWidth === undefined ? undefined : `${settings.windowOutlineWidth}px`, '--swatch-border': settings.borderOutlineWidth === undefined ? undefined : `${settings.borderOutlineWidth}px` } as CSSProperties}
       onCopy={event => {
         const swatch = document.activeElement?.closest<HTMLElement>('.swatch');
         const color = palette.find(item => `swatch-${item.id}` === swatch?.id);
@@ -332,7 +342,7 @@ function App() {
       {rows * columns > palette.length && <div className="empty-swatch" style={{ gridColumn: `span ${rows * columns - palette.length}`, color: outline.color === 'white' ? 'black' : 'white' }}>
         {!drag && editor.kind === 'closed' && <button className="add-color" aria-label="Add color in empty space" onClick={() => add(palette.length)}><Icon name="plus" /></button>}
       </div>}
-      {!drag && editor.kind === 'closed' && ['top-left', 'top-right', 'bottom-left', 'bottom-right'].map(corner => {
+      {!drag && editor.kind === 'closed' && ['top-left', 'top-right', 'bottom-left'].map(corner => {
         const action = corner.endsWith('right') ? 'color' : 'mode';
         return <div key={corner} className={`outline-zone outline-zone-${corner}`}>
           <button className="outline-button" tabIndex={corner.startsWith('top') ? 0 : -1} aria-label={`${action === 'color' ? 'Change outline color' : 'Cycle outline mode'} (${outline.mode === 'none' ? 'edge to edge' : outline.mode === 'outer' ? 'outside border' : 'swatch borders'}, ${outline.color})`} aria-keyshortcuts={action === 'mode' ? 'Control+Space Meta+Space' : 'Control+Shift+Space Meta+Shift+Space'}
@@ -344,7 +354,16 @@ function App() {
           </button>
         </div>;
       })}
+      {!drag && (editor.kind === 'closed' || editor.kind === 'settings') && <div className="outline-zone outline-zone-bottom-right">
+        <button className="outline-button" aria-label="Settings" aria-haspopup="dialog" onClick={() => setEditor({ kind: 'settings' })}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true">
+            <path d="M10 2h4l.6 3 1.5.9 2.9-1 2 3.4-2.3 2v3.4l2.3 2-2 3.4-2.9-1-1.5.9-.6 3h-4l-.6-3-1.5-.9-2.9 1-2-3.4 2.3-2v-3.4L3 8.3l2-3.4 2.9 1 1.5-.9Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
+      </div>}
     </main>
+    {editor.kind === 'settings' && <SettingsDialog settings={settings} onCancel={dismiss} onSave={next => { setSettings(next); close(); }} />}
     {(editor.kind === 'color' || editor.kind === 'name') && <Popup key={`${editor.kind}-${editor.swatch.id}`} x={editor.x} label={editor.kind === 'color' ? 'Color picker' : 'Rename color'} onClose={close} onCancel={dismiss}>
       {editor.kind === 'name' ? <form className="rename-form" onSubmit={event => {
         event.preventDefault();

@@ -44,6 +44,19 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .delete-zone-bottom { bottom: 0; }
 .popup { --popup-bottom: clamp(12px, 30vh, 340px); position: fixed; inset: auto; left: clamp(12px, calc(var(--anchor-x) - 170px), calc(100vw - 352px)); bottom: var(--popup-bottom); width: 340px; max-width: calc(100vw - 24px); max-height: calc(100dvh - var(--popup-bottom) - 12px); margin: 0; padding: 0; overflow-y: auto; border: 1px solid #ffffffb3; border-radius: 16px; color: #181b18; background: #fafbf8; box-shadow: 0 16px 64px #0003, 0 2px 8px #0001; }
 .popup:popover-open { animation: appear 160ms ease-out; }
+.settings-popup { inset: 0; margin: auto; width: 380px; max-height: calc(100dvh - 24px); }
+.settings-popup[open] { animation: appear 160ms ease-out; }
+.settings-popup::backdrop { background: #0003; }
+.settings-form { padding: 16px 20px; }
+.settings-form h2 { font-size: inherit; margin: 0; }
+.settings-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 13px; }
+.settings-value { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.settings-value input { width: 76px; padding: 8px; border: 1px solid #d5d8cd; border-radius: 7px; background: white; color: inherit; }
+.settings-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; font-size: 12px; }
+.settings-actions > button { border-radius: 8px; padding: 11px 13px; }
+.settings-actions > button:hover { background: #0000000a; }
+.settings-actions .save-button { width: 100px; margin: 0; }
+.settings-actions .save-button:hover { background: #394335; }
 @keyframes appear { from { opacity: 0; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
 .picker-main, .rename-form { padding: 16px 20px 14px; }
 .popup-heading { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
