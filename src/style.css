@@ -11,6 +11,8 @@ button:focus-visible, section:focus-visible { outline: 2px solid currentColor; o
 .channel input:focus-visible { outline: 2px solid #171917; outline-offset: 3px; border-radius: 4px; }
 svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.app-layout { display: flex; }
+.palette-workspace { flex: 1; min-width: 0; contain: layout; }
 .palette { --min-row-height: 160px; --delete-zone-height: clamp(36px, 20%, 64px); --outer-border: clamp(32px, 4vw, 48px); --swatch-border: 16px; --outline-transition: 350ms ease; position: relative; display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows), minmax(var(--min-row-height), 1fr)); gap: var(--swatch-gap); background: var(--outline-color); width: 100%; height: 100dvh; min-height: 340px; overflow-x: hidden; overflow-y: auto; border: 0 solid var(--outline-color); transition: border-width var(--outline-transition), --swatch-gap var(--outline-transition), border-color var(--outline-transition), background-color var(--outline-transition); }
 .palette[data-outline="outer"] { border-width: var(--outer-border); }
 .palette[data-outline="swatches"] { border-width: var(--swatch-border); --swatch-gap: var(--swatch-border); }
@@ -53,15 +55,14 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .delete-zone-bottom { bottom: 0; }
 .popup { --popup-bottom: clamp(12px, 30vh, 340px); position: fixed; inset: auto; left: clamp(12px, calc(var(--anchor-x) - 170px), calc(100vw - 352px)); bottom: var(--popup-bottom); width: 340px; max-width: calc(100vw - 24px); max-height: calc(100dvh - var(--popup-bottom) - 12px); margin: 0; padding: 0; overflow-y: auto; border: 1px solid #ffffffb3; border-radius: 16px; color: #181b18; background: #fafbf8; box-shadow: 0 16px 64px #0003, 0 2px 8px #0001; }
 .popup:popover-open { animation: appear 160ms ease-out; }
-.settings-popup { inset: 0; margin: auto; width: 380px; max-height: calc(100dvh - 24px); }
-.settings-popup[open] { animation: appear 160ms ease-out; }
-.settings-popup::backdrop { background: #0003; }
-.settings-form { padding: 16px 20px; }
+.settings-panel { flex: 0 0 0px; min-width: 0; height: 100dvh; overflow: clip; visibility: hidden; color: #181b18; background: #fafbf8; transition: flex-basis 300ms ease, visibility 0s 300ms; }
+.settings-panel[data-open="true"] { flex-basis: min(340px, 50%); visibility: visible; transition-delay: 0s; }
+.settings-form { width: min(340px, 50vw); height: 100%; padding: 16px 20px; overflow-y: auto; overscroll-behavior: contain; border-left: 1px solid #d5d8cd; }
 .settings-form h2 { font-size: inherit; margin: 0; }
-.settings-field { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 13px; }
+.settings-field { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 13px; }
 .settings-value { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .settings-value input { width: 76px; padding: 8px; border: 1px solid #d5d8cd; border-radius: 7px; background: white; color: inherit; }
-.settings-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; font-size: 12px; }
+.settings-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; font-size: 12px; }
 .settings-actions > button { border-radius: 8px; padding: 11px 13px; }
 .settings-actions > button:hover { background: #0000000a; }
 .settings-actions .save-button { width: 100px; margin: 0; }
@@ -113,5 +114,5 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 10px); max-width: calc(100vw - 32px); width: max-content; background: #fff; color: #171917; border-radius: 12px; padding: 12px 18px; box-shadow: 0 4px 24px #0002; font-size: 12px; opacity: 0; pointer-events: none; transition: opacity 180ms, transform 180ms; z-index: 8; }
 .toast.visible { opacity: 1; transform: translate(-50%, 0); }
 @media (max-width: 600px) { .popup { --popup-bottom: 16px; } .hex-button { padding: 7px 4px; letter-spacing: -.025em; } .name-button { padding: 5px 2px; } .add-zone { --add-width: 30px; } .add-color, .delete-color { width: 27px; height: 27px; } }
-@media (prefers-reduced-motion: reduce) { .swatch { --swap-duration: 0; } *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (prefers-reduced-motion: reduce) { .settings-panel { transition: none; } .swatch { --swap-duration: 0; } *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 @media (max-width: 600px) { .palette { --swatch-border: 8px; } .outline-zone { width: 32px; height: 32px; } .outline-button { width: 24px; height: 24px; } .outline-button svg { width: 16px; height: 16px; } }

@@ -3,11 +3,10 @@ import { createRoot } from 'react-dom/client';
 import { clamp, colorInfo, coordinates, ink, parseHex, shades, toHex, type Mode } from './color';
 import { historyReducer, insertionColor, move, parse, persist, type Palette, type Swatch } from './palette';
 import { Icon, Picker, Popup } from './Picker';
-import { readSettings, SettingsDialog } from './Settings';
+import { readSettings, SettingsPanel } from './Settings';
 import './style.css';
 
 type Editor = Readonly<{ kind: 'closed' }>
-  | Readonly<{ kind: 'settings' }>
   | Readonly<{ kind: 'name'; swatch: Swatch; x: number }>
   | Readonly<{ kind: 'color'; swatch: Swatch; x: number; values: readonly number[] }>
   | Readonly<{ kind: 'shades'; swatch: Swatch; values: readonly number[]; channel: number }>;
@@ -26,6 +25,8 @@ function App() {
   const [notice, setNotice] = useState('');
   const [keyboard, setKeyboard] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsButton = useRef<HTMLButtonElement>(null);
   const [settings, setSettings] = useState(readSettings);
   useEffect(() => {
     try {
@@ -103,7 +104,7 @@ function App() {
     }
   };
   const dismiss = () => {
-    if (editor.kind !== 'closed' && editor.kind !== 'settings') {
+    if (editor.kind !== 'closed') {
       const id = editor.swatch.id;
       const part = editor.kind === 'name' ? 'name' : 'hex';
       requestAnimationFrame(() => focusSwatch(id, part));
@@ -134,6 +135,16 @@ function App() {
         if (!event.repeat) activateOutline(event.shiftKey ? 'color' : 'mode');
         return;
       }
+      if (event.shiftKey && event.code === 'Slash' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.isComposing
+        && !(event.target instanceof HTMLInputElement && !['number', 'range'].includes(event.target.type))) {
+        event.preventDefault();
+        if (!event.repeat) {
+          setKeyboard(true);
+          setSettingsOpen(open => !open);
+          if (settingsOpen) settingsButton.current?.focus();
+        }
+        return;
+      }
       if (event.altKey && event.key === 'Enter') {
         event.preventDefault();
         event.stopPropagation();
@@ -142,6 +153,10 @@ function App() {
         return;
       }
       if (event.key === 'Escape' && document.fullscreenElement) void document.exitFullscreen();
+      if (event.target instanceof Element && event.target.closest('.settings-panel')) {
+        if (event.key === 'Tab') setKeyboard(true);
+        return;
+      }
       if (editor.kind !== 'closed' && (event.key.startsWith('Arrow') || ['Tab', 'Enter', ' '].includes(event.key))) setKeyboard(true);
       if (editor.kind === 'shades') {
         if (event.key === 'Escape') { event.preventDefault(); dismiss(); }
@@ -261,6 +276,8 @@ function App() {
   };
   return <>
     <h1 className="sr-only">Palette explorer</h1>
+    <div className="app-layout">
+    <div className="palette-workspace">
     <main ref={paletteElement} className={`palette ${showInfo ? 'has-info' : ''} ${drag ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter" style={{ '--columns': columns, '--rows': rows, '--outline-color': outline.color, '--outer-border': settings.windowOutlineWidth === undefined ? undefined : `${settings.windowOutlineWidth}px`, '--swatch-border': settings.borderOutlineWidth === undefined ? undefined : `${settings.borderOutlineWidth}px` } as CSSProperties}
       onCopy={event => {
         const swatch = document.activeElement?.closest<HTMLElement>('.swatch');
@@ -373,8 +390,8 @@ function App() {
           </svg>
         </button>
       </div>}
-      {!drag && (editor.kind === 'closed' || editor.kind === 'settings') && <div className="outline-zone outline-zone-top-right">
-        <button className="outline-button" aria-label="Settings" aria-haspopup="dialog" onClick={() => setEditor({ kind: 'settings' })}>
+      {!drag && editor.kind === 'closed' && <div className="outline-zone outline-zone-top-right">
+        <button ref={settingsButton} className="outline-button" aria-label="Settings" aria-keyshortcuts="Shift+/" aria-expanded={settingsOpen} aria-controls="settings-panel" onClick={() => setSettingsOpen(open => !open)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true">
             <path d="M10 2h4l.6 3 1.5.9 2.9-1 2 3.4-2.3 2v3.4l2.3 2-2 3.4-2.9-1-1.5.9-.6 3h-4l-.6-3-1.5-.9-2.9 1-2-3.4 2.3-2v-3.4L3 8.3l2-3.4 2.9 1 1.5-.9Z" />
             <circle cx="12" cy="12" r="3" />
@@ -394,7 +411,12 @@ function App() {
         </div>;
       })}
     </main>
-    {editor.kind === 'settings' && <SettingsDialog settings={settings} onCancel={dismiss} onSave={next => { setSettings(next); close(); }} />}
+    </div>
+    <SettingsPanel open={settingsOpen} settings={settings} onSave={setSettings} onClose={() => {
+      setSettingsOpen(false);
+      settingsButton.current?.focus();
+    }} />
+    </div>
     {(editor.kind === 'color' || editor.kind === 'name') && <Popup key={`${editor.kind}-${editor.swatch.id}`} x={editor.x} label={editor.kind === 'color' ? 'Color picker' : 'Rename color'} onClose={close} onCancel={dismiss}>
       {editor.kind === 'name' ? <form className="rename-form" onSubmit={event => {
         event.preventDefault();

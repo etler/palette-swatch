@@ -1,4 +1,3 @@
-import { useLayoutEffect, useRef } from 'react';
 import { Icon } from './Picker';
 
 const fields = [
@@ -18,28 +17,24 @@ export function readSettings(): Settings {
     const stored = JSON.parse(localStorage.getItem('palette:settings') ?? '{}');
     return Object.fromEntries(fields.map(field => {
       const value = stored?.[field.key];
-      return [field.key, Number.isInteger(value) && value >= field.min && value <= field.max ? value : field.defaultValue];
+      return [field.key, Number.isInteger(value) && value > 0 && value >= field.min && value <= field.max ? value : field.defaultValue];
     })) as Settings;
   } catch {
     return { minimumSwatchWidth: fields[0].defaultValue };
   }
 }
 
-export function SettingsDialog({ settings, onSave, onCancel }: {
+export function SettingsPanel({ open, settings, onSave, onClose }: {
+  readonly open: boolean;
   readonly settings: Settings;
   readonly onSave: (settings: Settings) => void;
-  readonly onCancel: () => void;
+  readonly onClose: () => void;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useLayoutEffect(() => {
-    const element = dialog.current;
-    element?.showModal();
-    element?.querySelector('input')?.select();
-    return () => element?.close();
-  }, []);
-  return <dialog ref={dialog} className="popup settings-popup" aria-labelledby="settings-title"
-    onCancel={event => { event.preventDefault(); onCancel(); }}>
-    <form className="settings-form" onSubmit={event => {
+  return <aside id="settings-panel" className="settings-panel" aria-labelledby="settings-title" data-open={open} inert={!open} aria-hidden={!open}
+    onKeyDown={event => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose(); }
+    }}>
+    <form key={String(open)} className="settings-form" onSubmit={event => {
       event.preventDefault();
       const data = new FormData(event.currentTarget);
       onSave(Object.fromEntries(fields.map(field => {
@@ -54,13 +49,16 @@ export function SettingsDialog({ settings, onSave, onCancel }: {
       });
     }}>
       <div className="popup-heading"><h2 id="settings-title">Settings</h2>
-        <button type="button" className="icon-button" aria-label="Cancel settings" onClick={onCancel}><Icon name="close" /></button>
+        <button type="button" className="icon-button" aria-label="Close settings" onClick={onClose}><Icon name="close" /></button>
       </div>
       {fields.map(field => <label key={field.key} className="settings-field">
         <span>{field.label}</span><span className="settings-value">
           <input name={field.key} type="number" min={field.min} max={field.max} step="1"
             required={field.defaultValue !== undefined} defaultValue={settings[field.key]} placeholder="Auto"
-            autoFocus={field.key === 'minimumSwatchWidth'} onFocus={event => event.currentTarget.select()} />
+            onChange={event => {
+              if (field.defaultValue === undefined && event.currentTarget.valueAsNumber === 0) event.currentTarget.value = '';
+            }}
+            autoFocus={open && field.key === 'minimumSwatchWidth'} onFocus={event => event.currentTarget.select()} />
           <span aria-hidden="true">px</span>
         </span>
       </label>)}
@@ -68,5 +66,5 @@ export function SettingsDialog({ settings, onSave, onCancel }: {
         <button className="save-button" type="submit">Save<Icon name="check" /></button>
       </div>
     </form>
-  </dialog>;
+  </aside>;
 }

@@ -27,7 +27,7 @@ Swatches use the fewest rows needed to stay at least 100px wide, with the column
 - Hover near the top or bottom of a swatch to reveal its delete button. The last swatch is kept.
 - The bottom-left corner cycles edge to edge, a thick outside border, and thinner outlines with equal-width outer edges and column gaps. The bottom-right ink-drop button toggles white/black, revealing the outside border from edge to edge. The ink fill follows the outline color. All four corner controls have Tab stops.
 - The top-left info toggle moves each swatch's titles to the top and shows selectable metadata below them. Each readout scrolls independently with faded edges. Tab can focus a readout for native keyboard scrolling; text selection and copying do not edit the palette. Turning info off restores the original title placement.
-- The top-right cog opens Settings. Set minimum swatch width (60–1000px), window outline width, and border outline width (0–120px). Blank outline widths use the existing responsive defaults. Save or Enter applies and remembers the values locally; Escape or the close button discards edits. Reset defaults restores the original values when saved.
+- The top-right cog toggles a persistent Settings panel on the right. It reduces the palette area, rewrapping swatches while keeping them usable. Set minimum swatch width (60–1000px), window outline width, and border outline width (1–120px). Zero or blank outline widths use the existing responsive defaults. Save or Enter applies and remembers the values locally without closing the panel; Escape within the panel, the close button, or the cog closes it and discards unsaved edits. Reset defaults restores the original values when saved.
 - Borders animate when changing color, expanding, and shrinking, taking up layout space inside the window; the swatches and their controls resize to fit. Reduced-motion settings skip the animation.
 - The outline mode and white/black preference are remembered in this browser using localStorage.
 - Drag a swatch to insert it at a new position, shifting the intervening swatches one slot. Wrapped rows use the same left-to-right palette order. Dragging keeps the entire swatch inside the visible palette area, including outline insets and scroll position. Double-click its color area to insert a new color to its right using the same blend/extrapolation rules as +.
@@ -69,6 +69,7 @@ Contrast follows [WCAG 2.2 relative luminance](https://www.w3.org/TR/WCAG22/#dfn
 | Mode selector | Up / Down; Enter | Navigate modes; crossing either endpoint returns to the opposite end of the picker; Enter selects a mode |
 | Shades | Arrows; Home / End | Navigate shades; jump to an endpoint |
 | Name or color editor, including shades | Enter / Escape | Accept / discard the edit and return focus |
+| Palette or settings | Shift + / | Toggle the settings sidebar |
 | App | Alt + Enter; Escape | Toggle fullscreen; exit fullscreen |
 | App | Ctrl/Cmd + Space | Cycle outline modes immediately |
 | App | Ctrl/Cmd + Shift + Space | Toggle the outline color between white and black |
