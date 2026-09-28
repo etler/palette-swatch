@@ -4,6 +4,7 @@ import { clamp, colorInfo, coordinates, ink, parseHex, shades, simulateVision, t
 import { historyReducer, insertionColor, move, parse, persist, type Palette, type Swatch } from './palette';
 import { Icon, Picker, Popup } from './Picker';
 import { readSettings, SettingsPanel } from './Settings';
+import { useBookmarks } from './Bookmarks';
 import './style.css';
 
 type Editor = Readonly<{ kind: 'closed' }>
@@ -33,6 +34,7 @@ function App() {
   const [editor, setEditor] = useState<Editor>({ kind: 'closed' });
   const [drag, setDrag] = useState<Drag | null>(null);
   const [notice, setNotice] = useState('');
+  const [bookmarks, setBookmarks] = useBookmarks(setNotice);
   const [keyboard, setKeyboard] = useState(false);
   const [showInfo, setShowInfo] = useState(() => {
     try {
@@ -455,7 +457,10 @@ function App() {
       })}
     </main>
     </div>
-    <SettingsPanel palette={drag ? move(previewPalette, drag.id, target) : previewPalette} vision={vision} onVision={setVision} open={settingsOpen} settings={settings} onSave={setSettings} onClose={() => {
+    <SettingsPanel onAddBookmark={(hex, name) => {
+      close();
+      commit([...previewPalette, { id: crypto.randomUUID(), hex, name }]);
+    }} bookmarks={bookmarks} onRemoveBookmark={hex => setBookmarks(current => new Map([...current].filter(([key]) => key !== hex)))} palette={drag ? move(previewPalette, drag.id, target) : previewPalette} vision={vision} onVision={setVision} open={settingsOpen} settings={settings} onSave={setSettings} onClose={() => {
       setSettingsOpen(false);
       settingsButton.current?.focus();
     }} />
@@ -464,11 +469,19 @@ function App() {
       {editor.kind === 'name' ? <form className="rename-form" onSubmit={event => {
         event.preventDefault();
         const name = String(new FormData(event.currentTarget).get('name')).trim();
-        if (name) { commit(update({ ...editor.swatch, name })); dismiss(); }
+        if (name) {
+          commit(update({ ...editor.swatch, name }));
+          setBookmarks(current => current.has(editor.swatch.hex) ? new Map([...current, [editor.swatch.hex, name]]) : current);
+          dismiss();
+        }
       }}><div className="popup-heading"><label htmlFor="name-input">Color Name</label><button type="button" className="icon-button" aria-label="Cancel rename" onClick={dismiss}><Icon name="close" /></button></div>
         <input id="name-input" name="name" defaultValue={editor.swatch.name} maxLength={80} required />
         <button className="save-button" type="submit">Save name<Icon name="check" /></button>
-      </form> : <Picker mode={mode} values={editor.values} original={editor.swatch.hex} onAccept={values => { commit(update({ ...editor.swatch, hex: toHex(mode, values) })); dismiss(); }} notify={setNotice}
+      </form> : <Picker bookmarked={bookmarks.has(toHex(mode, editor.values))} onBookmark={hex => {
+        setBookmarks(current => current.has(hex)
+          ? new Map([...current].filter(([key]) => key !== hex))
+          : new Map([...current, [hex, editor.swatch.name]]));
+      }} mode={mode} values={editor.values} original={editor.swatch.hex} onAccept={values => { commit(update({ ...editor.swatch, hex: toHex(mode, values) })); dismiss(); }} notify={setNotice}
         onChange={values => setEditor({ ...editor, values })}
         onMode={next => { setEditor({ ...editor, values: coordinates(toHex(mode, editor.values), next) }); setMode(next); }}
         onShades={(channel, values) => {

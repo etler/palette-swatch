@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { atFraction, channels, clamp, coordinates, fraction, modes, parseHex, replace, toHex, type Mode } from './color';
 
-export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' | 'eye' }) {
+export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' | 'eye' | 'bookmark' }) {
   const paths = {
+    bookmark: <path d="M6 3h12v18l-6-4-6 4V3Z" />,
     eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
     menu: <path d="M4 6h16M4 12h16M4 18h16" />,
     settings: <><path d="M10 2h4l.6 3 1.5.9 2.9-1 2 3.4-2.3 2v3.4l2.3 2-2 3.4-2.9-1-1.5.9-.6 3h-4l-.6-3-1.5-.9-2.9 1-2-3.4 2.3-2v-3.4L3 8.3l2-3.4 2.9 1 1.5-.9Z" /><circle cx="12" cy="12" r="3" /></>,
@@ -98,8 +99,9 @@ function pickerControls(form: HTMLFormElement) {
   return Array.from(form.querySelectorAll<HTMLInputElement>('input[name="hex"], input[type="range"]'));
 }
 
-export function Picker({ mode, values, original, onChange, onMode, onShades, onAccept, notify }: {
+export function Picker({ mode, values, original, onChange, onMode, onShades, onAccept, notify, bookmarked, onBookmark }: {
   readonly mode: Mode; readonly values: readonly number[]; readonly original: string;
+  readonly bookmarked: boolean; readonly onBookmark: (hex: string) => void;
   readonly onChange: (values: readonly number[]) => void; readonly onMode: (mode: Mode) => void;
   readonly onShades: (channel: number, values: readonly number[]) => void; readonly onAccept: (values: readonly number[]) => void; readonly notify: (message: string) => void;
 }) {
@@ -214,7 +216,8 @@ export function Picker({ mode, values, original, onChange, onMode, onShades, onA
     </div>
     <div className="picker-footer"><button type="button" className="mode-trigger" onClick={() => setView({ screen: 'modes', focus: 'default' })} aria-label="Change color mode">{mode}<Icon name="chevron" /></button>
       <div className="footer-actions"><button type="button" className="icon-button" aria-label="Pick a color from your screen" onClick={eyeDropper}><Icon name="dropper" /></button>
-        <button type="button" className="icon-button" aria-label="Copy hex code" onClick={async () => { try { await navigator.clipboard.writeText(hex); notify(`Copied ${hex}`); } catch { notify('Copy unavailable. Select the HEX field and copy it.'); } }}><Icon name="copy" /></button></div>
+        <button type="button" className="icon-button" aria-label="Copy hex code" onClick={async () => { try { await navigator.clipboard.writeText(hex); notify(`Copied ${hex}`); } catch { notify('Copy unavailable. Select the HEX field and copy it.'); } }}><Icon name="copy" /></button>
+        <button type="button" className="icon-button bookmark-toggle" aria-label="Bookmark swatch" aria-pressed={bookmarked} title={bookmarked ? 'Remove bookmark' : 'Save bookmark'} onClick={() => onBookmark(hex)}><Icon name="bookmark" /></button></div>
     </div>
   </form>;
 }

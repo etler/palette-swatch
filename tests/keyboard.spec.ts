@@ -211,7 +211,7 @@ for (const leaveFocus of ['color plane', 'Tab'] as const) {
     await page.locator('.color-plane').click({ position: { x: 70, y: 20 } });
     await expect(page.locator('.hex-button').first()).not.toHaveText('264653');
     if (leaveFocus === 'Tab') {
-      await page.getByRole('button', { name: 'Copy hex code', exact: true }).focus();
+      await page.getByRole('button', { name: 'Bookmark swatch', exact: true }).focus();
       await page.keyboard.press('Tab');
     }
     expect(await page.getByRole('dialog').evaluate(element => element.contains(document.activeElement))).toBe(false);
