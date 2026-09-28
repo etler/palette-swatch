@@ -60,7 +60,7 @@ for (const modifier of ['Control', 'Meta']) {
   }
 }
 
-for (const corner of ['top-left', 'bottom-left', 'top-right']) {
+for (const corner of ['top-left', 'top-right']) {
   test(`${corner} outline control performs the same action on every click, including a double-click`, async ({ page }) => {
     const palette = page.getByRole('main');
     const button = page.locator(`.outline-zone-${corner} button`);
@@ -84,7 +84,7 @@ for (const corner of ['top-left', 'bottom-left', 'top-right']) {
   });
 }
 
-test('Tab reaches both top outline actions then settings without repeating the bottom mode control', async ({ page }) => {
+test('Tab reaches outline actions, color information, and settings', async ({ page }) => {
   const palette = page.getByRole('main');
   await page.getByRole('button', { name: 'Add color at position 6', exact: true }).focus();
   await page.keyboard.press('Tab');
@@ -98,6 +98,8 @@ test('Tab reaches both top outline actions then settings without repeating the b
   await page.clock.runFor(400);
   await expect(palette).toHaveAttribute('data-outline', 'outer');
   await expect(palette).toHaveCSS('--outline-color', 'black');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Color information', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
   await page.keyboard.press('Tab');

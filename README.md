@@ -25,7 +25,8 @@ Swatches use the fewest rows needed to stay at least 100px wide, with the column
 - Hover near either edge of a swatch to reveal an insertion button.
 - Insertion blends neighboring colors in sRGB. At the outer edges, it extrapolates one step beyond the last two colors, clipping channels to the valid range. With one swatch, it repeats that color.
 - Hover near the top or bottom of a swatch to reveal its delete button. The last swatch is kept.
-- Hover in either left window corner for the outline mode button. Each click immediately cycles edge to edge, a thick outside border, and thinner outlines with equal-width outer edges and column gaps. The top-right ink-drop button toggles white/black, revealing the outside border from edge to edge. The ink fill follows the outline color. Both top corners and the bottom-right settings button have Tab stops; the duplicate bottom-left mode button is mouse-only.
+- The top-left corner cycles edge to edge, a thick outside border, and thinner outlines with equal-width outer edges and column gaps. The top-right ink-drop button toggles white/black, revealing the outside border from edge to edge. The ink fill follows the outline color. All four corner controls have Tab stops.
+- The bottom-left info toggle moves each swatch's titles to the top and shows selectable metadata below them. Each readout scrolls independently with faded edges. Tab can focus a readout for native keyboard scrolling; text selection and copying do not edit the palette. Turning info off restores the original title placement.
 - The bottom-right cog opens Settings. Set minimum swatch width (60–1000px), window outline width, and border outline width (0–120px). Blank outline widths use the existing responsive defaults. Save or Enter applies and remembers the values locally; Escape or the close button discards edits. Reset defaults restores the original values when saved.
 - Borders animate when changing color, expanding, and shrinking, taking up layout space inside the window; the swatches and their controls resize to fit. Reduced-motion settings skip the animation.
 - The outline mode and white/black preference are remembered in this browser using localStorage.
@@ -37,6 +38,12 @@ Swatches use the fewest rows needed to stay at least 100px wide, with the column
 HSB and HSL include a two-dimensional picker. Every mode includes numeric fields and canvas-rendered channel gradients. White markers preserve the opening color. CMYK is an unprofiled screen approximation. LAB uses D50; out-of-sRGB colors clip to the same hex values shown in previews and saved in the URL.
 
 Screen sampling uses the browser EyeDropper API where supported (such as desktop Chrome/Edge); it requires a secure context. Clipboard access also depends on browser permissions. Both controls report unavailable access without losing edits. Text uses CSS `contrast-color()` where supported, with a luminance-based black/white fallback.
+
+## Color information
+
+Readouts include RGB, HSL, HSB, approximate CMYK, Lab (D50), OKLCH, relative luminance, and contrast against black and white text. Conversions use the existing [Color.js color spaces](https://colorjs.io/docs/spaces); achromatic hue is shown as a dash. CMYK remains an unprofiled screen approximation.
+
+Contrast follows [WCAG 2.2 relative luminance](https://www.w3.org/TR/WCAG22/#dfn-relative-luminance). Ratings use unrounded ratios: [AA](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) requires 4.5:1 for normal text or 3:1 for large text; [AAA](https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html) requires 7:1 for normal text. Displayed ratios truncate to two decimals so they never round up to a passing threshold. These are text contrast ratings, not claims of overall accessibility conformance.
 
 ## Keyboard
 

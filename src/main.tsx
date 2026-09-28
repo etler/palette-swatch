@@ -1,6 +1,6 @@
 import { Fragment, StrictMode, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
 import { createRoot } from 'react-dom/client';
-import { clamp, coordinates, ink, parseHex, shades, toHex, type Mode } from './color';
+import { clamp, colorInfo, coordinates, ink, parseHex, shades, toHex, type Mode } from './color';
 import { historyReducer, insertionColor, move, parse, persist, type Palette, type Swatch } from './palette';
 import { Icon, Picker, Popup } from './Picker';
 import { readSettings, SettingsDialog } from './Settings';
@@ -25,6 +25,7 @@ function App() {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [notice, setNotice] = useState('');
   const [keyboard, setKeyboard] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [settings, setSettings] = useState(readSettings);
   useEffect(() => {
     try {
@@ -147,6 +148,7 @@ function App() {
         return;
       }
       if (editor.kind !== 'closed') return;
+      if (event.target instanceof Element && event.target.closest('.swatch-info')) return;
       if (event.target instanceof HTMLInputElement && !['range', 'number'].includes(event.target.type)) return;
       if (event.key === 'Escape') { setDrag(null); setKeyboard(false); return; }
       if ((event.ctrlKey || event.metaKey) && ['z', 'y'].includes(event.key.toLowerCase())) {
@@ -222,6 +224,7 @@ function App() {
     };
     const onPointer = () => { swatchSpace.current = undefined; setKeyboard(false); };
     const onPaste = (event: ClipboardEvent) => {
+      if (event.target instanceof Element && event.target.closest('.swatch-info')) return;
       const element = document.activeElement?.closest<HTMLElement>('.swatch');
       const swatch = palette.find(item => `swatch-${item.id}` === element?.id);
       if (swatch && pasteColor(swatch.id, event.clipboardData?.getData('text/plain') ?? '')) event.preventDefault();
@@ -258,7 +261,7 @@ function App() {
   };
   return <>
     <h1 className="sr-only">Palette explorer</h1>
-    <main ref={paletteElement} className={`palette ${drag ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter" style={{ '--columns': columns, '--rows': rows, '--outline-color': outline.color, '--outer-border': settings.windowOutlineWidth === undefined ? undefined : `${settings.windowOutlineWidth}px`, '--swatch-border': settings.borderOutlineWidth === undefined ? undefined : `${settings.borderOutlineWidth}px` } as CSSProperties}
+    <main ref={paletteElement} className={`palette ${showInfo ? 'has-info' : ''} ${drag ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter" style={{ '--columns': columns, '--rows': rows, '--outline-color': outline.color, '--outer-border': settings.windowOutlineWidth === undefined ? undefined : `${settings.windowOutlineWidth}px`, '--swatch-border': settings.borderOutlineWidth === undefined ? undefined : `${settings.borderOutlineWidth}px` } as CSSProperties}
       onCopy={event => {
         const swatch = document.activeElement?.closest<HTMLElement>('.swatch');
         const color = palette.find(item => `swatch-${item.id}` === swatch?.id);
@@ -331,6 +334,10 @@ function App() {
                 close();
                 setEditor({ kind: 'name', swatch: { ...swatch, hex }, x: bounds.left + bounds.width / 2 });
               }}>{swatch.name}</button>
+              {showInfo && <div className="swatch-info" role="region" aria-label={`${swatch.name} color information`} tabIndex={0}
+                onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onCopy={event => event.stopPropagation()}>
+                <dl>{colorInfo(hex).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+              </div>}
             </div>}
             {!drag && editor.kind === 'closed' && palette.length > 1 && ['top', 'bottom'].map(edge => <div key={edge} className={`delete-zone delete-zone-${edge}`}>
               <button className="delete-color" tabIndex={edge === 'bottom' ? -1 : undefined} aria-label={`Delete ${swatch.name}`} onClick={() => remove(swatch.id)}><Icon name="close" /></button>
@@ -342,10 +349,10 @@ function App() {
       {rows * columns > palette.length && <div className="empty-swatch" style={{ gridColumn: `span ${rows * columns - palette.length}`, color: outline.color === 'white' ? 'black' : 'white' }}>
         {!drag && editor.kind === 'closed' && <button className="add-color" aria-label="Add color in empty space" onClick={() => add(palette.length)}><Icon name="plus" /></button>}
       </div>}
-      {!drag && editor.kind === 'closed' && ['top-left', 'top-right', 'bottom-left'].map(corner => {
+      {!drag && editor.kind === 'closed' && ['top-left', 'top-right'].map(corner => {
         const action = corner.endsWith('right') ? 'color' : 'mode';
         return <div key={corner} className={`outline-zone outline-zone-${corner}`}>
-          <button className="outline-button" tabIndex={corner.startsWith('top') ? 0 : -1} aria-label={`${action === 'color' ? 'Change outline color' : 'Cycle outline mode'} (${outline.mode === 'none' ? 'edge to edge' : outline.mode === 'outer' ? 'outside border' : 'swatch borders'}, ${outline.color})`} aria-keyshortcuts={action === 'mode' ? 'Control+Space Meta+Space' : 'Control+Shift+Space Meta+Shift+Space'}
+          <button className="outline-button" tabIndex={0} aria-label={`${action === 'color' ? 'Change outline color' : 'Cycle outline mode'} (${outline.mode === 'none' ? 'edge to edge' : outline.mode === 'outer' ? 'outside border' : 'swatch borders'}, ${outline.color})`} aria-keyshortcuts={action === 'mode' ? 'Control+Space Meta+Space' : 'Control+Shift+Space Meta+Shift+Space'}
             onPointerDown={event => event.preventDefault()} onClick={() => activateOutline(action)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
               {action === 'color' ? <path className="outline-ink" d="M12 3C10 6 5 10 5 14a7 7 0 0 0 14 0c0-4-5-8-7-11Z" />
@@ -354,6 +361,13 @@ function App() {
           </button>
         </div>;
       })}
+      {!drag && editor.kind === 'closed' && <div className="outline-zone outline-zone-bottom-left">
+        <button className="outline-button" aria-label="Color information" aria-pressed={showInfo} onClick={() => setShowInfo(current => !current)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7h.01" />
+          </svg>
+        </button>
+      </div>}
       {!drag && (editor.kind === 'closed' || editor.kind === 'settings') && <div className="outline-zone outline-zone-bottom-right">
         <button className="outline-button" aria-label="Settings" aria-haspopup="dialog" onClick={() => setEditor({ kind: 'settings' })}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true">

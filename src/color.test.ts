@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { coordinates, ink, modes, parseHex, shades, toHex } from './color';
+import { colorInfo, coordinates, ink, modes, parseHex, shades, toHex } from './color';
 import { historyReducer, insertionColor, move, parse, serialize } from './palette';
 
 describe('color conversion', () => {
@@ -33,6 +33,35 @@ describe('color conversion', () => {
     expect(ink('FFFFFF')).toBe('#000000');
     expect(ink('000000')).toBe('#ffffff');
     expect(ink('E9C46A')).toBe('#000000');
+  });
+});
+
+describe('color information', () => {
+  it('reports reference values and contrast for primary colors', () => {
+    expect(Object.fromEntries(colorInfo('FF0000'))).toMatchObject({
+      RGB: '255 0 0', HSL: '0° 100% 50%', HSB: '0° 100% 100%',
+      'CMYK (approx.)': '0% 100% 100% 0%', 'Lab (D50)': '54.3 80.8 69.9',
+      'Relative luminance': '0.2126',
+      'Black text · WCAG 2.2': '5.25:1 · AA', 'White text · WCAG 2.2': '3.99:1 · AA large only',
+    });
+  });
+  it('marks achromatic hues as undefined and gives the black/white contrast endpoints', () => {
+    const black = Object.fromEntries(colorInfo('000000'));
+    const white = Object.fromEntries(colorInfo('FFFFFF'));
+    expect(black.HSL).toBe('— 0% 0%');
+    expect(white.HSB).toBe('— 0% 100%');
+    expect(black.OKLCH).toBe('0% 0 —');
+    expect(white.OKLCH).toBe('100% 0 —');
+    expect(black['Black text · WCAG 2.2']).toBe('1.00:1 · Fail');
+    expect(black['White text · WCAG 2.2']).toBe('21.00:1 · AAA');
+    expect(white['Black text · WCAG 2.2']).toBe('21.00:1 · AAA');
+    for (const hex of ['000000', 'FFFFFF', '808080']) {
+      expect(colorInfo(hex).flat().join(' ')).not.toMatch(/NaN|Infinity|-0(?:\s|$)/);
+    }
+  });
+  it('distinguishes colors on opposite sides of the AA normal-text threshold', () => {
+    expect(Object.fromEntries(colorInfo('767676'))['White text · WCAG 2.2']).toBe('4.54:1 · AA');
+    expect(Object.fromEntries(colorInfo('777777'))['White text · WCAG 2.2']).toBe('4.47:1 · AA large only');
   });
 });
 

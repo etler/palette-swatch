@@ -39,12 +39,44 @@ export function toHex(mode: Mode, values: readonly number[]): string {
   return rgb.map(value => Math.round(clamp(value ?? 0) * 255).toString(16).padStart(2, '0')).join('').toUpperCase();
 }
 
-export function ink(hex: string): '#000000' | '#ffffff' {
+function relativeLuminance(hex: string): number {
   const rgb = coordinates(hex, 'RGB').map(value => {
     const c = value / 255;
     return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   });
-  return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722 > .179 ? '#000000' : '#ffffff';
+  return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
+}
+
+export function ink(hex: string): '#000000' | '#ffffff' {
+  return relativeLuminance(hex) > .179 ? '#000000' : '#ffffff';
+}
+
+export function colorInfo(hex: string): readonly (readonly [string, string])[] {
+  const rgb = coordinates(hex, 'RGB');
+  const neutral = rgb.every(value => value === rgb[0]);
+  const format = (value: number, digits = 1) => String(Number(value.toFixed(digits)));
+  const hue = (value: number) => neutral ? '—' : `${format(value)}°`;
+  const cylindrical = (mode: 'HSL' | 'HSB') => {
+    const [h, s, l] = coordinates(hex, mode);
+    return `${hue(h)} ${format(s)}% ${format(l)}%`;
+  };
+  const [lightness, chroma, angle] = new Color(`#${hex}`).to('oklch').coords;
+  const luminance = relativeLuminance(hex);
+  const contrast = (ratio: number) => {
+    const rating = ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA large only' : 'Fail';
+    return `${(Math.floor(ratio * 100) / 100).toFixed(2)}:1 · ${rating}`;
+  };
+  return [
+    ['RGB', rgb.map(value => format(value, 0)).join(' ')],
+    ['HSL', cylindrical('HSL')],
+    ['HSB', cylindrical('HSB')],
+    ['CMYK (approx.)', coordinates(hex, 'CMYK').map(value => `${format(value)}%`).join(' ')],
+    ['Lab (D50)', coordinates(hex, 'LAB').map(value => format(value)).join(' ')],
+    ['OKLCH', `${format((lightness ?? 0) * 100)}% ${format(chroma ?? 0, 4)} ${hue(angle ?? 0)}`],
+    ['Relative luminance', format(luminance, 4)],
+    ['Black text · WCAG 2.2', contrast((luminance + .05) / .05)],
+    ['White text · WCAG 2.2', contrast(1.05 / (luminance + .05))],
+  ];
 }
 
 export const replace = (values: readonly number[], index: number, value: number) => values.map((v, i) => i === index ? value : v);
