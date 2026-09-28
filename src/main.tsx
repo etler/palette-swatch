@@ -391,11 +391,8 @@ function App() {
         </button>
       </div>}
       {!drag && editor.kind === 'closed' && <div className="outline-zone outline-zone-top-right">
-        <button ref={settingsButton} className="outline-button" aria-label="Settings" aria-keyshortcuts="Shift+/" aria-expanded={settingsOpen} aria-controls="settings-panel" onClick={() => setSettingsOpen(open => !open)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden="true">
-            <path d="M10 2h4l.6 3 1.5.9 2.9-1 2 3.4-2.3 2v3.4l2.3 2-2 3.4-2.9-1-1.5.9-.6 3h-4l-.6-3-1.5-.9-2.9 1-2-3.4 2.3-2v-3.4L3 8.3l2-3.4 2.9 1 1.5-.9Z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
+        <button ref={settingsButton} className="outline-button" aria-label="Menu" aria-keyshortcuts="Shift+/" aria-expanded={settingsOpen} aria-controls="settings-panel" onClick={() => setSettingsOpen(open => !open)}>
+          <Icon name="menu" />
         </button>
       </div>}
       {!drag && editor.kind === 'closed' && ['bottom-left', 'bottom-right'].map(corner => {

@@ -1,8 +1,11 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { atFraction, channels, clamp, coordinates, fraction, modes, parseHex, replace, toHex, type Mode } from './color';
 
-export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' }) {
+export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' }) {
   const paths = {
+    menu: <path d="M4 6h16M4 12h16M4 18h16" />,
+    settings: <><path d="M10 2h4l.6 3 1.5.9 2.9-1 2 3.4-2.3 2v3.4l2.3 2-2 3.4-2.9-1-1.5.9-.6 3h-4l-.6-3-1.5-.9-2.9 1-2-3.4 2.3-2v-3.4L3 8.3l2-3.4 2.9 1 1.5-.9Z" /><circle cx="12" cy="12" r="3" /></>,
+    keyboard: <><rect x="2" y="5" width="20" height="14" rx="3" /><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10" /></>,
     plus: <path d="M12 5v14M5 12h14" />,
     close: <path d="m6 6 12 12M6 18 18 6" />,
     shades: <><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M4 9.3h16M4 14.7h16" /></>,

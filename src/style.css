@@ -57,8 +57,19 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .popup:popover-open { animation: appear 160ms ease-out; }
 .settings-panel { flex: 0 0 0px; min-width: 0; height: 100dvh; overflow: clip; visibility: hidden; color: #181b18; background: #fafbf8; transition: flex-basis 300ms ease, visibility 0s 300ms; }
 .settings-panel[data-open="true"] { flex-basis: min(340px, 50%); visibility: visible; transition-delay: 0s; }
-.settings-form { width: min(340px, 50vw); height: 100%; padding: 16px 20px; overflow-y: auto; overscroll-behavior: contain; border-left: 1px solid #d5d8cd; }
-.settings-form h2 { font-size: inherit; margin: 0; }
+.sidebar-content { width: min(340px, 50vw); height: 100%; display: flex; flex-direction: column; border-left: 1px solid #d5d8cd; }
+.sidebar-header { display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid #d5d8cd; }
+.sidebar-tabs { display: flex; flex: 1; gap: 4px; }
+.sidebar-tabs button { flex: 1; display: grid; place-items: center; padding: 10px; border-radius: 7px; }
+.sidebar-tabs button:hover { background: #0000000a; }
+.sidebar-tabs button[aria-selected="true"] { background: #e8ebe3; }
+.sidebar-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.settings-form, .shortcut-list { padding: 16px 20px; }
+.sidebar-body h2 { font-size: 14px; margin: 0 0 16px; }
+.shortcut-list h3 { font-size: 12px; margin: 24px 0 12px; }
+.shortcut-list dl { display: grid; gap: 14px; margin: 0; font-size: 12px; }
+.shortcut-list dd { margin: 5px 0 0; }
+.shortcut-list kbd { font-family: inherit; font-size: 11px; line-height: 1.9; padding: 2px 5px; border: 1px solid #d5d8cd; border-radius: 4px; background: white; box-decoration-break: clone; }
 .settings-field { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 13px; }
 .settings-value { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .settings-value input { width: 76px; padding: 8px; border: 1px solid #d5d8cd; border-radius: 7px; background: white; color: inherit; }

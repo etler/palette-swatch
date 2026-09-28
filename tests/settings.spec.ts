@@ -7,12 +7,12 @@ test.beforeEach(async ({ page }) => {
 for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
   test(`settings reserves space and keeps palette controls usable at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    const button = page.getByRole('button', { name: 'Settings', exact: true });
+    const button = page.getByRole('button', { name: 'Menu', exact: true });
     await expect(button).toHaveCSS('opacity', '0');
     await button.hover();
     await expect(button).toHaveCSS('opacity', '1');
     await button.click();
-    const panel = page.getByRole('complementary', { name: 'Settings' });
+    const panel = page.getByRole('complementary', { name: 'Palette menu' });
     await expect(panel).toBeVisible();
     await expect(button).toHaveAttribute('aria-expanded', 'true');
     await expect(panel).toHaveCSS('width', `${Math.min(340, viewport.width / 2)}px`);
@@ -26,15 +26,15 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     const corner = await button.boundingBox();
     expect(corner!.x + corner!.width).toBeLessThanOrEqual(bounds!.x);
     const width = page.getByRole('spinbutton', { name: 'Minimum swatch width' });
-    await expect(width).toBeFocused();
+    await expect(page.getByRole('tab', { name: 'Settings', exact: true })).toBeFocused();
     await width.press('ArrowUp');
     await expect(width).toHaveValue('101');
     await expect(width).toBeFocused();
-    await page.getByRole('button', { name: 'Close settings' }).focus();
+    await page.getByRole('tab', { name: 'Settings', exact: true }).focus();
     await page.keyboard.press('Shift+Tab');
     await expect(page.getByRole('button', { name: /^Change outline color/ })).toBeFocused();
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Close settings' })).toBeFocused();
+    await expect(page.getByRole('tab', { name: 'Settings', exact: true })).toBeFocused();
     await page.getByRole('button', { name: 'Rename Color 1', exact: true }).click();
     await expect(page.getByRole('dialog', { name: 'Rename color' })).toBeVisible();
     await page.keyboard.press('Escape');
@@ -71,13 +71,13 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
 
 test('saving sizes changes wrapping and equal outline gaps and survives reload', async ({ page }) => {
   await page.setViewportSize({ width: 600, height: 800 });
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await page.getByRole('spinbutton', { name: 'Minimum swatch width' }).fill('190');
   await page.getByRole('spinbutton', { name: 'Window outline width' }).fill('20');
   await page.getByRole('spinbutton', { name: 'Border outline width' }).fill('12');
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('complementary', { name: 'Settings' })).toBeVisible();
-  await page.getByRole('button', { name: 'Close settings' }).click();
+  await expect(page.getByRole('complementary', { name: 'Palette menu' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close menu' }).click();
   const palette = page.getByRole('main');
   await expect(palette).toHaveCSS('--rows', '2');
   await expect(page.locator('.empty-swatch')).toHaveCount(1);
@@ -91,7 +91,7 @@ test('saving sizes changes wrapping and equal outline gaps and survives reload',
   await page.reload();
   await expect(palette).toHaveCSS('border-top-width', '12px');
   await expect(palette).toHaveCSS('--rows', '3');
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: 'Minimum swatch width' })).toHaveValue('190');
   await expect(page.getByRole('spinbutton', { name: 'Window outline width' })).toHaveValue('20');
   await expect(page.getByRole('spinbutton', { name: 'Border outline width' })).toHaveValue('12');
@@ -99,17 +99,17 @@ test('saving sizes changes wrapping and equal outline gaps and survives reload',
 
 test('invalid inputs cannot save and reset restores the responsive defaults', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  const open = page.getByRole('button', { name: 'Settings', exact: true });
+  const open = page.getByRole('button', { name: 'Menu', exact: true });
   await open.click();
   const minimum = page.getByRole('spinbutton', { name: 'Minimum swatch width' });
   const border = page.getByRole('spinbutton', { name: 'Border outline width' });
   await minimum.fill('0');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByRole('complementary', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Palette menu' })).toBeVisible();
   await minimum.fill('180');
   await border.fill('25');
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('complementary', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Palette menu' })).toBeVisible();
   await page.getByRole('button', { name: 'Reset defaults' }).click();
   await expect(minimum).toHaveValue('100');
   await expect(border).toHaveValue('');
@@ -125,7 +125,7 @@ test('invalid inputs cannot save and reset restores the responsive defaults', as
 test('corrupt settings and blocked storage do not break the palette', async ({ page }) => {
   await page.evaluate(() => localStorage.setItem('palette:settings', JSON.stringify({ minimumSwatchWidth: -1, windowOutlineWidth: 'huge', borderOutlineWidth: 4 })));
   await page.reload();
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: 'Minimum swatch width' })).toHaveValue('100');
   await expect(page.getByRole('spinbutton', { name: 'Window outline width' })).toHaveValue('');
   await expect(page.getByRole('spinbutton', { name: 'Border outline width' })).toHaveValue('4');
@@ -133,11 +133,11 @@ test('corrupt settings and blocked storage do not break the palette', async ({ p
     Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Blocked', 'SecurityError'); } });
   });
   await page.reload();
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await page.getByRole('spinbutton', { name: 'Minimum swatch width' }).fill('400');
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('complementary', { name: 'Settings' })).toBeVisible();
-  await page.getByRole('button', { name: 'Close settings' }).click();
+  await expect(page.getByRole('complementary', { name: 'Palette menu' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close menu' }).click();
   await expect(page.getByRole('main')).toHaveCSS('--rows', '2');
 });
 
@@ -146,7 +146,7 @@ test('zero outline widths resolve to Auto when entered or loaded from storage', 
     minimumSwatchWidth: 100, windowOutlineWidth: 0, borderOutlineWidth: 0,
   })));
   await page.reload();
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
   for (const name of ['Window outline width', 'Border outline width']) {
     const input = page.getByRole('spinbutton', { name });
     await expect(input).toHaveValue('');
@@ -165,24 +165,24 @@ test('zero outline widths resolve to Auto when entered or loaded from storage', 
   await expect(page.getByRole('main')).toHaveCSS('border-top-width', '16px');
   await page.reload();
   await expect(page.getByRole('main')).toHaveCSS('border-top-width', '16px');
-  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
   await expect(page.getByRole('spinbutton', { name: 'Window outline width' })).toHaveValue('');
   await expect(page.getByRole('spinbutton', { name: 'Border outline width' })).toHaveValue('');
 });
 
 test('Shift+/ toggles settings without repeating or interrupting name entry', async ({ page }) => {
-  const panel = page.getByRole('complementary', { name: 'Settings' });
+  const panel = page.getByRole('complementary', { name: 'Palette menu' });
   await page.keyboard.down('Shift');
   await page.keyboard.down('Slash');
   await expect(panel).toBeVisible();
-  await expect(page.getByRole('spinbutton', { name: 'Minimum swatch width' })).toBeFocused();
+  await expect(page.getByRole('tab', { name: 'Settings', exact: true })).toBeFocused();
   await page.keyboard.down('Slash');
   await expect(panel).toBeVisible();
   await page.keyboard.up('Slash');
   await page.keyboard.up('Shift');
   await page.keyboard.press('Shift+Slash');
   await expect(panel).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Menu', exact: true })).toBeFocused();
   await page.keyboard.press('Shift+Slash');
   await expect(panel).toBeVisible();
   await page.keyboard.press('Shift+Slash');
@@ -192,3 +192,67 @@ test('Shift+/ toggles settings without repeating or interrupting name entry', as
   await expect(page.getByRole('textbox', { name: 'Color Name' })).toHaveValue('?');
   await expect(panel).toHaveCount(0);
 });
+
+for (const width of [1440, 390]) {
+  test(`sidebar tabs preserve drafts and keyboard shortcuts scroll at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.getByRole('button', { name: 'Menu', exact: true }).click();
+    const settings = page.getByRole('tab', { name: 'Settings', exact: true });
+    const keyboard = page.getByRole('tab', { name: 'Keyboard shortcuts' });
+    const minimum = page.getByRole('spinbutton', { name: 'Minimum swatch width' });
+    await expect(settings).toBeFocused();
+    await minimum.fill('230');
+    await keyboard.click();
+    const shortcuts = page.getByRole('tabpanel', { name: 'Keyboard shortcuts' });
+    await expect(shortcuts).toBeVisible();
+    await expect(keyboard).toHaveAttribute('aria-selected', 'true');
+    await expect(minimum).toBeHidden();
+    await expect(shortcuts.getByText('Shift + /', { exact: true })).toBeVisible();
+    await keyboard.press('ArrowRight');
+    await expect(settings).toBeFocused();
+    await expect(minimum).toHaveValue('230');
+    await settings.press('End');
+    await expect(keyboard).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Close menu' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(shortcuts).toBeFocused();
+    await page.keyboard.press('End');
+    await expect.poll(() => page.locator('.sidebar-body').evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+    await expect(page.getByRole('tablist')).toBeInViewport();
+    await expect(shortcuts.getByText('Close sidebar', { exact: true })).toBeInViewport();
+    await page.keyboard.press('Shift+Slash');
+    await page.keyboard.press('Shift+Slash');
+    await expect(keyboard).toBeFocused();
+    await keyboard.press('Home');
+    await expect(settings).toBeFocused();
+    await expect(minimum).toHaveValue('100');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+  });
+}
+
+for (const [platform, modifier, alt, enter, deletion, redo] of [
+  ['MacIntel', '⌘', '⌥', 'Return', 'Delete', '⌘ + Shift + Z'],
+  ['Win32', 'Ctrl', 'Alt', 'Enter', 'Delete / Backspace', 'Ctrl + Shift + Z; Ctrl + Y'],
+  ['Linux x86_64', 'Ctrl', 'Alt', 'Enter', 'Delete / Backspace', 'Ctrl + Shift + Z; Ctrl + Y'],
+  ['iPad', '⌘', '⌥', 'Return', 'Delete', '⌘ + Shift + Z'],
+]) {
+  test(`shortcut labels match the browser platform ${platform}`, async ({ page }) => {
+    await page.addInitScript(platform => Object.defineProperty(navigator, 'platform', { value: platform }), platform);
+    await page.reload();
+    await page.getByRole('button', { name: 'Menu', exact: true }).click();
+    await page.getByRole('tab', { name: 'Keyboard shortcuts' }).click();
+    const panel = page.getByRole('tabpanel', { name: 'Keyboard shortcuts' });
+    for (const [action, keys] of [
+      ['Undo', `${modifier} + Z`],
+      ['Copy focused hex', `${modifier} + C`],
+      ['Toggle fullscreen', `${alt} + ${enter}`],
+      ['Delete selected swatch', deletion],
+      ['Redo', redo],
+      ['Save settings', enter],
+    ]) {
+      await expect(panel.locator('dl > div').filter({ has: page.getByText(action, { exact: true }) }).locator('kbd')).toHaveText(keys);
+    }
+    await expect(panel).not.toContainText('Ctrl / ⌘');
+  });
+}

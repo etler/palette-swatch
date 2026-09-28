@@ -1,9 +1,64 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from './Picker';
 
 const fields = [
   { key: 'minimumSwatchWidth', label: 'Minimum swatch width', min: 60, max: 1000, defaultValue: 100 },
   { key: 'windowOutlineWidth', label: 'Window outline width', min: 0, max: 120, defaultValue: undefined },
   { key: 'borderOutlineWidth', label: 'Border outline width', min: 0, max: 120, defaultValue: undefined },
+] as const;
+
+const keyLabels = /^(Mac|iPhone|iPad|iPod)/.test(navigator.platform)
+  ? { modifier: '⌘', alt: '⌥', enter: 'Return', delete: 'Delete', redo: '⌘ + Shift + Z' }
+  : { modifier: 'Ctrl', alt: 'Alt', enter: 'Enter', delete: 'Delete / Backspace', redo: 'Ctrl + Shift + Z; Ctrl + Y' };
+
+const shortcuts = [
+  ['App', [
+    ['Toggle sidebar', 'Shift + /'],
+    ['Cycle outline mode', `${keyLabels.modifier} + Space`],
+    ['Toggle outline color', `${keyLabels.modifier} + Shift + Space`],
+    ['Toggle fullscreen', `${keyLabels.alt} + ${keyLabels.enter}`],
+    ['Exit fullscreen', 'Esc'],
+  ]],
+  ['Palette', [
+    ['Focus selected swatch', 'Tab'],
+    ['Focus mouse selection', `Space / ${keyLabels.enter}`],
+    ['Previous / next swatch', '← / →'],
+    ['Cycle swatch, hex, and name', '↑ / ↓'],
+    ['Move selected swatch', `${keyLabels.modifier} / ${keyLabels.alt} + ← / →`],
+    ['Delete selected swatch', keyLabels.delete],
+    ['Add swatch to the right', 'Space twice'],
+    ['Edit focused color', keyLabels.enter],
+    ['Open focused hex or name', `Space / ${keyLabels.enter}`],
+    ['Copy focused hex', `${keyLabels.modifier} + C`],
+    ['Paste color to the right', `${keyLabels.modifier} + V`],
+    ['Undo', `${keyLabels.modifier} + Z`],
+    ['Redo', keyLabels.redo],
+    ['Clear focus outline', 'Esc'],
+  ]],
+  ['Color picker', [
+    ['Previous / next value or mode', '↑ / ↓'],
+    ['Adjust slider by 1', '← / →'],
+    ['Adjust slider by 10', `Shift / ${keyLabels.modifier} + ← / →`],
+    ['Adjust slider by 0.1', `${keyLabels.alt} + ← / →`],
+    ['Type a slider value', '0–9'],
+    ['Explore slider shades', 'Space'],
+    ['Choose mode', keyLabels.enter],
+  ]],
+  ['Shades', [
+    ['Previous / next shade', '↑ / ↓ / ← / →'],
+    ['First / last shade', 'Home / End'],
+    ['Choose shade', `Space / ${keyLabels.enter}`],
+  ]],
+  ['Editing', [
+    ['Accept color or name', keyLabels.enter],
+    ['Discard color or name', 'Esc'],
+  ]],
+  ['Sidebar', [
+    ['Previous / next tab', '← / →'],
+    ['First / last tab', 'Home / End'],
+    ['Save settings', keyLabels.enter],
+    ['Close sidebar', 'Esc'],
+  ]],
 ] as const;
 
 export type Settings = Readonly<{
@@ -30,41 +85,71 @@ export function SettingsPanel({ open, settings, onSave, onClose }: {
   readonly onSave: (settings: Settings) => void;
   readonly onClose: () => void;
 }) {
-  return <aside id="settings-panel" className="settings-panel" aria-labelledby="settings-title" data-open={open} inert={!open} aria-hidden={!open}
+  const [tab, setTab] = useState<'settings' | 'keyboard'>('settings');
+  const panel = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    if (open) panel.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
+  }, [open]);
+  return <aside ref={panel} id="settings-panel" className="settings-panel" aria-label="Palette menu" data-open={open} inert={!open} aria-hidden={!open}
     onKeyDown={event => {
       if (event.key === 'Escape') { event.preventDefault(); onClose(); }
     }}>
-    <form key={String(open)} className="settings-form" onSubmit={event => {
-      event.preventDefault();
-      const data = new FormData(event.currentTarget);
-      onSave(Object.fromEntries(fields.map(field => {
-        const value = data.get(field.key);
-        return [field.key, value === '' ? field.defaultValue : Number(value)];
-      })) as Settings);
-    }} onReset={event => {
-      event.preventDefault();
-      fields.forEach(field => {
-        const input = event.currentTarget.elements.namedItem(field.key);
-        if (input instanceof HTMLInputElement) input.value = String(field.defaultValue ?? '');
-      });
-    }}>
-      <div className="popup-heading"><h2 id="settings-title">Settings</h2>
-        <button type="button" className="icon-button" aria-label="Close settings" onClick={onClose}><Icon name="close" /></button>
+    <div className="sidebar-content">
+      <header className="sidebar-header">
+        <div className="sidebar-tabs" role="tablist" aria-label="Sidebar" onKeyDown={event => {
+          if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 'settings' : event.key === 'End' ? 'keyboard' : tab === 'settings' ? 'keyboard' : 'settings';
+          setTab(next);
+          event.currentTarget.querySelector<HTMLElement>(`#${next}-tab`)?.focus();
+        }}>
+          {(['settings', 'keyboard'] as const).map(item => <button key={item} id={`${item}-tab`} type="button" role="tab"
+            aria-label={item === 'settings' ? 'Settings' : 'Keyboard shortcuts'} title={item === 'settings' ? 'Settings' : 'Keyboard shortcuts'}
+            aria-controls={`${item}-content`} aria-selected={tab === item} tabIndex={tab === item ? 0 : -1} onClick={() => setTab(item)}>
+            <Icon name={item} />
+          </button>)}
+        </div>
+        <button type="button" className="icon-button" aria-label="Close menu" onClick={onClose}><Icon name="close" /></button>
+      </header>
+      <div className="sidebar-body">
+        <form key={String(open)} id="settings-content" role="tabpanel" aria-labelledby="settings-tab" hidden={tab !== 'settings'} className="settings-form" onSubmit={event => {
+          event.preventDefault();
+          const data = new FormData(event.currentTarget);
+          onSave(Object.fromEntries(fields.map(field => {
+            const value = data.get(field.key);
+            return [field.key, value === '' ? field.defaultValue : Number(value)];
+          })) as Settings);
+        }} onReset={event => {
+          event.preventDefault();
+          fields.forEach(field => {
+            const input = event.currentTarget.elements.namedItem(field.key);
+            if (input instanceof HTMLInputElement) input.value = String(field.defaultValue ?? '');
+          });
+        }}>
+          <h2>Settings</h2>
+          {fields.map(field => <label key={field.key} className="settings-field">
+            <span>{field.label}</span><span className="settings-value">
+              <input name={field.key} type="number" min={field.min} max={field.max} step="1"
+                required={field.defaultValue !== undefined} defaultValue={settings[field.key]} placeholder="Auto"
+                onChange={event => {
+                  if (field.defaultValue === undefined && event.currentTarget.valueAsNumber === 0) event.currentTarget.value = '';
+                }}
+                onFocus={event => event.currentTarget.select()} />
+              <span aria-hidden="true">px</span>
+            </span>
+          </label>)}
+          <div className="settings-actions"><button type="reset">Reset defaults</button>
+            <button className="save-button" type="submit">Save<Icon name="check" /></button>
+          </div>
+        </form>
+        <section id="keyboard-content" role="tabpanel" aria-labelledby="keyboard-tab" hidden={tab !== 'keyboard'} tabIndex={0} className="shortcut-list">
+          <h2>Keyboard shortcuts</h2>
+          {shortcuts.map(([group, entries]) => <section key={group}>
+            <h3>{group}</h3>
+            <dl>{entries.map(([action, keys]) => <div key={action}><dt>{action}</dt><dd><kbd>{keys}</kbd></dd></div>)}</dl>
+          </section>)}
+        </section>
       </div>
-      {fields.map(field => <label key={field.key} className="settings-field">
-        <span>{field.label}</span><span className="settings-value">
-          <input name={field.key} type="number" min={field.min} max={field.max} step="1"
-            required={field.defaultValue !== undefined} defaultValue={settings[field.key]} placeholder="Auto"
-            onChange={event => {
-              if (field.defaultValue === undefined && event.currentTarget.valueAsNumber === 0) event.currentTarget.value = '';
-            }}
-            autoFocus={open && field.key === 'minimumSwatchWidth'} onFocus={event => event.currentTarget.select()} />
-          <span aria-hidden="true">px</span>
-        </span>
-      </label>)}
-      <div className="settings-actions"><button type="reset">Reset defaults</button>
-        <button className="save-button" type="submit">Save<Icon name="check" /></button>
-      </div>
-    </form>
+    </div>
   </aside>;
 }

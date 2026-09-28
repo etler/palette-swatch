@@ -92,7 +92,7 @@ test('Tab reaches top info and settings controls before bottom outline actions',
   await expect(page.locator('.outline-zone-top-left button')).toHaveAccessibleName('Color information');
   await page.keyboard.press('Tab');
   await expect(page.locator('.outline-zone-top-right button')).toBeFocused();
-  await expect(page.locator('.outline-zone-top-right button')).toHaveAccessibleName('Settings');
+  await expect(page.locator('.outline-zone-top-right button')).toHaveAccessibleName('Menu');
   await page.keyboard.press('Tab');
   await expect(page.locator('.outline-zone-bottom-left button')).toBeFocused();
   await page.keyboard.press('Enter');
