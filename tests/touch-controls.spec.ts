@@ -117,12 +117,12 @@ test('mobile actions append regardless of selection and expose undo and redo ava
   await expect(page.locator('.swatch')).toHaveCount(6);
 });
 
-for (const [selector, popup] of [['.hex-button', 'Color picker'], ['.name-button', 'Rename color']]) {
+for (const [selector, popup] of [['.hex-button', 'Color picker'], ['.name-button', 'Color picker']]) {
   test(`tapping ${selector} opens its editor and selects the input`, async ({ page }) => {
     await page.locator('.swatch').nth(1).locator(selector).tap();
     const dialog = page.getByRole('dialog', { name: popup });
     await expect(dialog).toBeVisible();
-    const input = dialog.locator('input').first();
+    const input = dialog.getByRole('textbox', { name: selector === '.hex-button' ? 'Hex color' : 'Color Name' });
     await expect(input).toBeFocused();
     expect(await input.evaluate((element: HTMLInputElement) => element.selectionStart === 0 && element.selectionEnd === element.value.length)).toBe(true);
     await expect(page.locator('.swatch')).toHaveCount(5);
@@ -197,7 +197,7 @@ for (const visible of [false, true]) {
 
 test('tapping titles and using popup buttons does not reveal edge controls', async ({ page }) => {
   const menu = page.getByRole('button', { name: 'Menu', exact: true });
-  for (const [selector, close] of [['.hex-button', 'Cancel color changes'], ['.name-button', 'Cancel rename']]) {
+  for (const [selector, close] of [['.hex-button', 'Cancel color changes'], ['.name-button', 'Cancel color changes']]) {
     await page.locator(selector).nth(1).tap();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.getByRole('button', { name: close }).tap();

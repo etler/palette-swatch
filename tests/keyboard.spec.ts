@@ -119,7 +119,7 @@ test('Tab exposes a visible target and Escape clears it', async ({ page }) => {
   await expect(third).toBeFocused();
   const name = page.getByRole('button', { name: 'Add name for Color 3' });
   await name.click();
-  await page.getByRole('button', { name: 'Cancel rename' }).click();
+  await page.getByRole('button', { name: 'Cancel color changes' }).click();
   await expect(name).toBeFocused();
   await expect(name).toHaveCSS('outline-style', 'none');
   await page.keyboard.press('Tab');
@@ -147,14 +147,14 @@ for (const key of ['Enter', 'Space']) {
 
     const name = page.getByRole('button', { name: 'Add name for Color 3' });
     await name.click();
-    await page.getByRole('button', { name: 'Cancel rename' }).click();
+    await page.getByRole('button', { name: 'Cancel color changes' }).click();
     await expect(name).toBeFocused();
     await expect(name).toHaveCSS('outline-style', 'none');
     await page.keyboard.press(key);
     await expect(name).toHaveCSS('outline-style', 'solid');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.keyboard.press(key);
-    await expect(page.getByRole('dialog', { name: 'Rename color' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Color picker' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(name).toBeFocused();
     await page.getByRole('button', { name: 'Add color at position 4', exact: true }).focus();
@@ -559,13 +559,13 @@ test('Shift+= types in a name without adding a swatch', async ({ page }) => {
 
 test('Space on focused hex and name titles opens their popups', async ({ page }) => {
   await page.getByRole('region', { name: 'Color 2', exact: true }).click({ position: { x: 100, y: 200 } });
-  for (const [arrow, popup] of [['ArrowDown', 'Color picker'], ['ArrowDown', 'Rename color']]) {
-    await page.keyboard.press(arrow);
+  for (const name of ['Edit Color 2 color 2A9D8F', 'Add name for Color 2']) {
+    await page.keyboard.press('ArrowDown');
     await page.keyboard.press('Space');
-    await expect(page.getByRole('dialog', { name: popup })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Color picker' })).toBeVisible();
     await expect(page.locator('.swatch')).toHaveCount(5);
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('button', { name: popup === 'Color picker' ? 'Edit Color 2 color 2A9D8F' : 'Add name for Color 2', exact: true })).toBeFocused();
+    await expect(page.getByRole('button', { name, exact: true })).toBeFocused();
   }
 });
 

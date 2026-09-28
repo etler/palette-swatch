@@ -21,7 +21,7 @@ Swatches use the fewest rows needed to stay at least 100px wide, with the column
 
 ## Interactions
 
-- Click a hex code to edit. Click a name to rename it. On touchscreens, dragging starts after holding for 350ms or moving 10px, including from either title; a tap opens its editor.
+- Click a hex code or name to open the color picker with that field selected. The editable heading shows the color name, or “Edit color” when unnamed. Name and color changes apply or cancel together. On touchscreens, dragging starts after holding for 350ms or moving 10px, including from either title; a tap opens its editor.
 - Hover near either edge of a swatch to reveal an insertion button.
 - Insertion blends neighboring colors in sRGB. At the outer edges, it extrapolates one step beyond the last two colors, clipping channels to the valid range. With one swatch, it repeats that color.
 - Hover near the top or bottom of a swatch to reveal its delete button. The last swatch is kept. On touchscreens, a single tap on a non-interactive area anywhere toggles the corner and bottom controls after the double-tap window. Double-taps, title taps, scrolling, and dragging do not toggle them; using visible buttons keeps them open. Delete and side add buttons are hidden; a shared Undo / Add swatch / Redo group appears at the bottom center of the swatch area. Add appends to the end of the palette, and unavailable history actions are disabled. Double-tapping a swatch’s color area opens its color picker. Hidden edge buttons do not intercept taps.

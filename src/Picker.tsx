@@ -30,7 +30,7 @@ export function Popup({ x, onClose, onCancel, children, label }: { readonly x: n
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     ref.current?.showPopover();
-    const input = ref.current?.querySelector('input');
+    const input = ref.current?.querySelector<HTMLInputElement>('input[data-autofocus]');
     input?.focus();
     input?.select();
   }, []);
@@ -105,7 +105,8 @@ function pickerControls(form: HTMLFormElement) {
   return Array.from(form.querySelectorAll<HTMLInputElement>('input[name="hex"], input[type="range"]'));
 }
 
-export function Picker({ mode, values, original, onChange, onMode, onShades, onAccept, onCancel, notify, bookmarked, onBookmark }: {
+export function Picker({ name, initialFocus, onName, mode, values, original, onChange, onMode, onShades, onAccept, onCancel, notify, bookmarked, onBookmark }: {
+  readonly name: string; readonly initialFocus: 'hex' | 'name'; readonly onName: (name: string) => void;
   readonly mode: Mode; readonly values: readonly number[]; readonly original: string;
   readonly onCancel: () => void;
   readonly bookmarked: boolean; readonly onBookmark: (hex: string) => void;
@@ -119,10 +120,12 @@ export function Picker({ mode, values, original, onChange, onMode, onShades, onA
   useLayoutEffect(() => {
     if (!form.current) return;
     const controls = pickerControls(form.current);
-    const input = controls[view.focus === 'last' ? controls.length - 1 : 0];
+    const input = view.focus === 'default' && initialFocus === 'name'
+      ? form.current.querySelector<HTMLInputElement>('input[name="name"]')
+      : controls[view.focus === 'last' ? controls.length - 1 : 0];
     input?.focus();
     input?.select();
-  }, [view]);
+  }, [view, initialFocus]);
   useLayoutEffect(() => {
     form.current?.querySelectorAll<HTMLInputElement>('input[type="number"]').forEach(input => {
       input.value = String(Math.round(values[Number(input.dataset.channel)] * 10) / 10);
@@ -170,7 +173,7 @@ export function Picker({ mode, values, original, onChange, onMode, onShades, onA
   </div>;
   return <form ref={form} onSubmit={event => { event.preventDefault(); onAccept(draft()); }} onKeyDown={event => {
     const input = event.target;
-    if (!(input instanceof HTMLInputElement)) return;
+    if (!(input instanceof HTMLInputElement) || input.name === 'name') return;
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       event.preventDefault();
       const controls = pickerControls(event.currentTarget);
@@ -202,13 +205,14 @@ export function Picker({ mode, values, original, onChange, onMode, onShades, onA
     }
   }}>
     <div className="picker-main">
-      <div className="popup-heading"><span>Edit color</span><div className="picker-heading-actions">
+      <div className="popup-heading"><input className="picker-name" name="name" aria-label="Color Name" placeholder="Edit color" value={name} maxLength={80}
+        data-autofocus={initialFocus === 'name' ? '' : undefined} onFocus={event => event.currentTarget.select()} onChange={event => onName(event.currentTarget.value)} /><div className="picker-heading-actions">
         <button type="button" className="icon-button" aria-label="Cancel color changes" onClick={onCancel}><Icon name="close" /></button>
         <button type="submit" className="icon-button" aria-label="Apply color changes"><Icon name="check" /></button>
       </div></div>
       {(mode === 'HSB' || mode === 'HSL') && <Plane mode={mode} values={values} original={previous} onChange={onChange} />}
       <div className="hex-field"><span className="color-chip" style={{ background: `#${hex}` }} /><label htmlFor="hex-input">HEX</label>
-        <input key={hex} id="hex-input" name="hex" defaultValue={hex} required pattern="#?[A-Fa-f0-9]{6}" maxLength={7} aria-label="Hex color" spellCheck={false} onBlur={event => { const parsed = parseHex(event.currentTarget.value); if (parsed) onChange(coordinates(parsed, mode)); }} />
+        <input key={hex} id="hex-input" name="hex" data-autofocus={initialFocus === 'hex' ? '' : undefined} defaultValue={hex} required pattern="#?[A-Fa-f0-9]{6}" maxLength={7} aria-label="Hex color" spellCheck={false} onBlur={event => { const parsed = parseHex(event.currentTarget.value); if (parsed) onChange(coordinates(parsed, mode)); }} />
       </div>
       <div className="sliders">{channels[mode].map((c, index) => <div className="channel" key={`${mode}-${c.label}`}>
         <div className="channel-label"><label htmlFor={`channel-${index}`}>{c.label}</label>

@@ -8,9 +8,8 @@ import { useBookmarks } from './Bookmarks';
 import './style.css';
 
 type Editor = Readonly<{ kind: 'closed' }>
-  | Readonly<{ kind: 'name'; swatch: Swatch; x: number }>
-  | Readonly<{ kind: 'color'; swatch: Swatch; x: number; values: readonly number[] }>
-  | Readonly<{ kind: 'shades'; swatch: Swatch; values: readonly number[]; channel: number }>;
+  | (Readonly<{ swatch: Swatch; name: string; focus: 'hex' | 'name'; values: readonly number[] }> &
+    (Readonly<{ kind: 'color'; x: number }> | Readonly<{ kind: 'shades'; channel: number }>));
 type Drag = Readonly<{ phase: 'pending' | 'dragging'; id: string; startX: number; startY: number; x: number; y: number; width: number; height: number; origin: number; startedAt: number; travel: number; overTrash: boolean; pointerType: string }>;
 const paint = (hex: string): CSSProperties => ({ '--color': `#${hex}`, '--ink': ink(hex) } as CSSProperties);
 function focusSwatch(id: string, part = 'swatch') {
@@ -225,13 +224,19 @@ function App() {
   const dismiss = () => {
     if (editor.kind !== 'closed') {
       const id = editor.swatch.id;
-      const part = editor.kind === 'name' ? 'name' : 'hex';
+      const part = editor.focus;
       requestAnimationFrame(() => focusSwatch(id, part));
     }
     setEditor({ kind: 'closed' });
   };
+  const saveColor = (hex: string) => {
+    if (editor.kind === 'closed') return;
+    const name = editor.name.trim();
+    commit(update({ ...editor.swatch, hex, name }));
+    if (name !== editor.swatch.name) setBookmarks(current => current.has(hex) ? new Map([...current, [hex, name]]) : current);
+  };
   const close = () => {
-    if (editor.kind === 'color') commit(update({ ...editor.swatch, hex: toHex(mode, editor.values) }));
+    if (editor.kind === 'color') saveColor(toHex(mode, editor.values));
     setEditor({ kind: 'closed' });
   };
   useEffect(() => { persist(palette); }, [palette]);
@@ -543,7 +548,7 @@ function App() {
               options[next].focus();
             }}>
               {shades(mode, editor.values, editor.channel).map((shade, i) => <button key={i} className="shade" style={paint(simulateVision(shade.hex, vision))} aria-label={shade.code} aria-current={shade.original ? 'true' : undefined}
-                autoFocus={shade.original} onClick={() => { commit(update({ ...swatch, hex: shade.hex })); dismiss(); }}>
+                autoFocus={shade.original} onClick={() => { saveColor(shade.hex); dismiss(); }}>
                 {shade.original && <span className="original-dot" />}<span className="shade-code">{shade.code}</span>
               </button>)}
               <button className="shade-back icon-button" aria-label="Cancel shades" onClick={dismiss}><Icon name="close" /></button>
@@ -556,12 +561,12 @@ function App() {
                 <button data-target="hex" className="hex-button" aria-label={`Edit ${label} color ${hex}`} onClick={event => {
                   const bounds = event.currentTarget.getBoundingClientRect();
                   close();
-                  setEditor({ kind: 'color', swatch: { ...swatch, hex }, values: coordinates(hex, mode), x: bounds.left + bounds.width / 2 });
+                  setEditor({ kind: 'color', swatch: { ...swatch, hex }, name: swatch.name, focus: 'hex', values: coordinates(hex, mode), x: bounds.left + bounds.width / 2 });
                 }}>{hex}</button>
                 <button data-target="name" className="name-button" aria-label={swatch.name ? `Rename ${swatch.name}` : `Add name for ${label}`} onClick={event => {
                   const bounds = event.currentTarget.getBoundingClientRect();
                   close();
-                  setEditor({ kind: 'name', swatch: { ...swatch, hex }, x: bounds.left + bounds.width / 2 });
+                  setEditor({ kind: 'color', swatch: { ...swatch, hex }, name: swatch.name, focus: 'name', values: coordinates(hex, mode), x: bounds.left + bounds.width / 2 });
                 }}><span className={swatch.name ? undefined : 'name-placeholder'}>{swatch.name || 'Add Name'}</span></button>
               </div>
             </div>}
@@ -620,26 +625,17 @@ function App() {
       settingsButton.current?.focus();
     }} />
     </div>
-    {(editor.kind === 'color' || editor.kind === 'name') && <Popup key={`${editor.kind}-${editor.swatch.id}`} x={editor.x} label={editor.kind === 'color' ? 'Color picker' : 'Rename color'} onClose={close} onCancel={dismiss}>
-      {editor.kind === 'name' ? <form className="rename-form" onSubmit={event => {
-        event.preventDefault();
-        const name = String(new FormData(event.currentTarget).get('name')).trim();
-        commit(update({ ...editor.swatch, name }));
-        setBookmarks(current => current.has(editor.swatch.hex) ? new Map([...current, [editor.swatch.hex, name]]) : current);
-        dismiss();
-      }}><div className="popup-heading"><label htmlFor="name-input">Color Name</label><button type="button" className="icon-button" aria-label="Cancel rename" onClick={dismiss}><Icon name="close" /></button></div>
-        <input id="name-input" name="name" defaultValue={editor.swatch.name} maxLength={80} />
-        <button className="save-button" type="submit">Save name<Icon name="check" /></button>
-      </form> : <Picker onCancel={dismiss} bookmarked={bookmarks.has(toHex(mode, editor.values))} onBookmark={hex => {
+    {editor.kind === 'color' && <Popup key={editor.swatch.id} x={editor.x} label="Color picker" onClose={close} onCancel={dismiss}>
+      <Picker name={editor.name} initialFocus={editor.focus} onName={name => setEditor({ ...editor, name })} onCancel={dismiss} bookmarked={bookmarks.has(toHex(mode, editor.values))} onBookmark={hex => {
         setBookmarks(current => current.has(hex)
           ? new Map([...current].filter(([key]) => key !== hex))
-          : new Map([...current, [hex, editor.swatch.name]]));
-      }} mode={mode} values={editor.values} original={editor.swatch.hex} onAccept={values => { commit(update({ ...editor.swatch, hex: toHex(mode, values) })); dismiss(); }} notify={setNotice}
+          : new Map([...current, [hex, editor.name.trim()]]));
+      }} mode={mode} values={editor.values} original={editor.swatch.hex} onAccept={values => { saveColor(toHex(mode, values)); dismiss(); }} notify={setNotice}
         onChange={values => setEditor({ ...editor, values })}
         onMode={next => { setEditor({ ...editor, values: coordinates(toHex(mode, editor.values), next) }); setMode(next); }}
         onShades={(channel, values) => {
-          setEditor({ kind: 'shades', swatch: editor.swatch, values, channel });
-        }} />}
+          setEditor({ kind: 'shades', swatch: editor.swatch, name: editor.name, focus: editor.focus, values, channel });
+        }} />
     </Popup>}
     <div className={`toast ${notice ? 'visible' : ''}`} role="status">{notice}</div>
   </>;

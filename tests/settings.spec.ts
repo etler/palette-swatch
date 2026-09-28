@@ -36,7 +36,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     await page.keyboard.press('Tab');
     await expect(page.getByRole('tab', { name: 'Settings', exact: true })).toBeFocused();
     await page.getByRole('button', { name: 'Add name for Color 1', exact: true }).click();
-    await expect(page.getByRole('dialog', { name: 'Rename color' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Color picker' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(panel).toBeVisible();
     await expect(page.getByRole('button', { name: 'Add name for Color 1', exact: true })).toBeFocused();

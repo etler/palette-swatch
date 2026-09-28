@@ -121,7 +121,7 @@ test('opening name and hex editors selects their text for immediate replacement'
 test('names persist, additions and renames undo and redo', async ({ page }) => {
   await page.getByRole('button', { name: 'Add name for Color 1', exact: true }).click();
   await page.getByLabel('Color Name', { exact: true }).fill('Deep sea');
-  await page.getByRole('button', { name: 'Save name' }).click();
+  await page.getByRole('button', { name: 'Apply color changes' }).click();
   await expect(page).toHaveURL(/#264653:Deep%20sea#2A9D8F/);
   await expect(page.getByRole('button', { name: 'Rename Deep sea' })).toBeVisible();
   await page.keyboard.press('Control+z');
@@ -233,7 +233,7 @@ test('renaming a color immediately after editing keeps the new color', async ({ 
   await page.getByRole('textbox', { name: 'Hex color' }).press('Enter');
   await page.getByRole('button', { name: 'Add name for Color 1', exact: true }).click();
   await page.getByLabel('Color Name', { exact: true }).fill('Meadow');
-  await page.getByRole('button', { name: 'Save name' }).click();
+  await page.getByRole('button', { name: 'Apply color changes' }).click();
   await expect(page.getByRole('button', { name: 'Edit Meadow color ABC123' })).toBeVisible();
 });
 
@@ -280,7 +280,7 @@ for (const action of ['cancel', 'apply', 'outside'] as const) {
     const picker = page.getByRole('dialog', { name: 'Color picker' });
     const hex = picker.getByRole('textbox', { name: 'Hex color' });
     await hex.fill('112233');
-    await picker.getByText('Edit color', { exact: true }).click();
+    await picker.getByRole('textbox', { name: 'Color Name' }).click();
     await expect(swatch).toHaveText('112233');
     await hex.fill('445566');
     if (action === 'outside') await page.mouse.click(1400, 20);
