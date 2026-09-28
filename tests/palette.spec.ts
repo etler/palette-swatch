@@ -17,6 +17,28 @@ test('the add margin reveals the button but only the button adds a swatch', asyn
   await expect(page.locator('.hex-button')).toHaveText(['264653', '287271', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51']);
 });
 
+for (const width of [1440, 390]) {
+  for (const outline of ['none', 'outer', 'swatches']) {
+    test(`add margins preserve the underlying swatch hover at ${width}px with ${outline} outlines`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      if (outline !== 'none') await page.keyboard.press('Control+Space');
+      if (outline === 'swatches') await page.keyboard.press('Control+Space');
+      await expect(page.getByRole('main')).toHaveAttribute('data-outline', outline);
+      await page.getByRole('main').evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)));
+      const swatches = page.locator('.swatch');
+      for (const [index, edge, position] of [[0, 'left', 1], [0, 'right', 2], [1, 'left', 2], [4, 'right', 6]] as const) {
+        const swatch = swatches.nth(index);
+        const bounds = await swatch.boundingBox();
+        if (!bounds) throw new Error('Expected swatch bounds');
+        await page.mouse.move(edge === 'left' ? bounds.x + 4 : bounds.x + bounds.width - 4, bounds.y + 90);
+        expect(await swatch.evaluate(element => element.matches(':hover'))).toBe(true);
+        await expect(swatch.locator('.name-placeholder')).toHaveCSS('opacity', '0.4');
+        await expect(page.getByRole('button', { name: `Add color at position ${position}`, exact: true })).toHaveCSS('opacity', '1');
+      }
+    });
+  }
+}
+
 for (const { position, hex } of [{ position: 1, hex: '220017' }, { position: 6, hex: 'DA3C41' }]) {
   test(`adding at edge ${position} extrapolates its neighbors and supports undo`, async ({ page }) => {
     await page.getByRole('button', { name: `Add color at position ${position}`, exact: true }).click();

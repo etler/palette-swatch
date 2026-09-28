@@ -421,6 +421,10 @@ function App() {
                 }}><span className={swatch.name ? undefined : 'name-placeholder'}>{swatch.name || 'Add Name'}</span></button>
               </div>
             </div>}
+            {!drag && editor.kind === 'closed' && <>
+              <span className="add-hover-start" aria-hidden="true" />
+              <span className="add-hover-end" aria-hidden="true" />
+            </>}
             {!drag && editor.kind === 'closed' && palette.length > 1 && ['top', 'bottom'].map(edge => <div key={edge} className={`delete-zone delete-zone-${edge}`}>
               <button className="delete-color" tabIndex={edge === 'bottom' ? -1 : undefined} aria-label={`Delete ${label}`} onClick={() => remove(swatch.id)}><Icon name="close" /></button>
             </div>)}
