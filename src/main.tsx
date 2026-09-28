@@ -216,7 +216,11 @@ function App() {
       if (event.key.startsWith('Arrow')) {
         event.preventDefault();
         if (event.ctrlKey || event.metaKey || event.altKey) {
-          if (index >= 0 && ['ArrowLeft', 'ArrowRight'].includes(event.key)) commit(move(palette, palette[index].id, index + (event.key === 'ArrowLeft' ? -1 : 1)));
+          if (index >= 0 && ['ArrowLeft', 'ArrowRight'].includes(event.key)) {
+            setKeyboard(true);
+            focusSwatch(palette[index].id);
+            commit(move(palette, palette[index].id, index + (event.key === 'ArrowLeft' ? -1 : 1)));
+          }
           return;
         }
         setKeyboard(true);
@@ -232,7 +236,10 @@ function App() {
           focusSwatch(palette[Math.max(0, index)].id, parts[next]);
         }
       } else if (index >= 0 && ['Delete', 'Backspace'].includes(event.key)) {
-        event.preventDefault(); remove(palette[index].id);
+        event.preventDefault();
+        setKeyboard(true);
+        focusSwatch(palette[index].id);
+        remove(palette[index].id);
       } else if (keyboard && active === swatch && event.key === 'Enter') {
         event.preventDefault(); swatch?.querySelector<HTMLButtonElement>('.hex-button')?.click();
       }

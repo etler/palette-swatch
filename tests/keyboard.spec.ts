@@ -29,7 +29,7 @@ test('keyboard swaps animate both swatches in either direction', async ({ page }
   expect(await selected.evaluate(element => Math.round(element.getBoundingClientRect().x))).toBe(576);
 });
 
-test('move and delete work on the selected swatch without an outline, while arrows reveal focus', async ({ page }) => {
+test('move and delete reveal focus on the selected swatch, and arrows continue navigation', async ({ page }) => {
   await page.keyboard.press('Control+ArrowRight');
   await page.keyboard.press('Delete');
   await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51']);
@@ -38,7 +38,8 @@ test('move and delete work on the selected swatch without an outline, while arro
   await expect(third).toHaveCSS('outline-style', 'none');
   await page.keyboard.press('Control+ArrowRight');
   await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'F4A261', 'E9C46A', 'E76F51']);
-  await expect(third).toHaveCSS('outline-style', 'none');
+  await expect(third).toBeFocused();
+  await expect(third).toHaveCSS('outline-style', 'solid');
   await page.keyboard.press('Control+ArrowLeft');
   await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51']);
   await page.keyboard.press('Delete');
@@ -514,3 +515,21 @@ test('Space on focused hex and name titles opens their popups', async ({ page })
     await expect(page.getByRole('button', { name: popup === 'Color picker' ? 'Edit Color 2 color 2A9D8F' : 'Rename Color 2', exact: true })).toBeFocused();
   }
 });
+
+for (const [hash, selected, remaining] of [
+  ['111111#222222#333333', 'Color 1', 'Color 2'],
+  ['111111#222222#333333', 'Color 2', 'Color 3'],
+  ['111111#222222#333333', 'Color 3', 'Color 2'],
+  ['111111', 'Color 1', 'Color 1'],
+]) {
+  test(`deleting mouse-selected ${selected} in ${hash} focuses ${remaining}`, async ({ page }) => {
+    await page.goto(`/#${hash}`);
+    const swatch = page.getByRole('region', { name: selected, exact: true });
+    await swatch.click({ position: { x: 60, y: 180 } });
+    await expect(swatch).toHaveCSS('outline-style', 'none');
+    await page.keyboard.press('Delete');
+    const focused = page.getByRole('region', { name: remaining, exact: true });
+    await expect(focused).toBeFocused();
+    await expect(focused).toHaveCSS('outline-style', 'solid');
+  });
+}

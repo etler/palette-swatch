@@ -74,7 +74,7 @@ Contrast follows [WCAG 2.2 relative luminance](https://www.w3.org/TR/WCAG22/#dfn
 | App | Ctrl/Cmd + Space | Cycle outline modes immediately |
 | App | Ctrl/Cmd + Shift + Space | Toggle the outline color between white and black |
 
-After the initial Tab focuses the selected swatch, subsequent Tab presses follow native focus navigation, with insertion buttons between neighboring swatches and at both ends. Left/right arrows skip insertion buttons. Shift+Tab and Tab within popups retain native behavior. Mouse clicks clear the keyboard outline. Move and delete shortcuts also work on the selection without an outline; palette clipboard shortcuts require visible focus.
+After the initial Tab focuses the selected swatch, subsequent Tab presses follow native focus navigation, with insertion buttons between neighboring swatches and at both ends. Left/right arrows skip insertion buttons. Shift+Tab and Tab within popups retain native behavior. Mouse clicks clear the keyboard outline. Move and delete shortcuts also work on the selection without an outline and reveal focus on the resulting swatch; palette clipboard shortcuts require visible focus.
 
 ## Verify
 
