@@ -204,6 +204,26 @@ test('picker arrows traverse sliders, typing enters values, and Escape restores 
   await expect(page).toHaveURL(/#264653#2A9D8F#/);
 });
 
+for (const leaveFocus of ['color plane', 'Tab'] as const) {
+  test(`Escape cancels a preview after focus leaves through ${leaveFocus}`, async ({ page }) => {
+    const original = page.getByRole('button', { name: 'Edit Color 1 color 264653' });
+    await original.click();
+    await page.locator('.color-plane').click({ position: { x: 70, y: 20 } });
+    await expect(page.locator('.hex-button').first()).not.toHaveText('264653');
+    if (leaveFocus === 'Tab') {
+      await page.getByRole('button', { name: 'Copy hex code', exact: true }).focus();
+      await page.keyboard.press('Tab');
+    }
+    expect(await page.getByRole('dialog').evaluate(element => element.contains(document.activeElement))).toBe(false);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(original).toBeFocused();
+    await expect(page).toHaveURL(/#264653#2A9D8F#/);
+    await page.keyboard.press('Control+Shift+z');
+    await expect(original).toBeVisible();
+  });
+}
+
 test('Enter accepts the currently typed hex without requiring blur', async ({ page }) => {
   await page.getByRole('button', { name: 'Edit Color 1 color 264653' }).click();
   await page.keyboard.type('ABC123');

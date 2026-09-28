@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { atFraction, channels, clamp, coordinates, fraction, modes, parseHex, replace, toHex, type Mode } from './color';
 
 export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' }) {
@@ -26,10 +26,19 @@ export function Popup({ x, onClose, onCancel, children, label }: { readonly x: n
     input?.focus();
     input?.select();
   }, []);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      onCancel();
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [onCancel]);
   return <div ref={ref} popover="auto" className="popup" role="dialog" aria-label={label}
     style={{ '--anchor-x': `${x}px` } as CSSProperties}
     onKeyDownCapture={event => {
-      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onCancel(); }
       if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {
         const form = event.currentTarget.querySelector('form');
         if (form) { event.preventDefault(); form.requestSubmit(); }
