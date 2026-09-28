@@ -1,10 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Icon } from './Picker';
 import { Accessibility } from './Accessibility';
 import { Bookmarks } from './Bookmarks';
 import { Exports } from './Exports';
 import type { VisionMode } from './color';
 import type { Palette } from './palette';
+
+const touchMedia = window.matchMedia('(hover: none)');
+const subscribeToTouch = (notify: () => void) => {
+  touchMedia.addEventListener('change', notify);
+  return () => touchMedia.removeEventListener('change', notify);
+};
 
 const tabs = [
   { id: 'settings', label: 'Settings', icon: 'settings' },
@@ -39,7 +45,7 @@ const shortcuts = [
     ['Cycle swatch, hex, and name', '↑ / ↓'],
     ['Move selected swatch', `${keyLabels.modifier} / ${keyLabels.alt} + ← / →`],
     ['Delete selected swatch', keyLabels.delete],
-    ['Add swatch to the right', 'Space twice'],
+    ['Add swatch to the right', 'Shift + = (+)'],
     ['Edit focused color', keyLabels.enter],
     ['Open focused hex or name', `Space / ${keyLabels.enter}`],
     ['Copy selected hex', `${keyLabels.modifier} + C`],
@@ -105,7 +111,9 @@ export function SettingsPanel({ open, settings, onSave, onClose, palette, vision
   readonly onSave: (settings: Settings) => void;
   readonly onClose: () => void;
 }) {
-  const [tab, setTab] = useState<typeof tabs[number]['id']>(() => {
+  const touch = useSyncExternalStore(subscribeToTouch, () => touchMedia.matches);
+  const visibleTabs = tabs.filter(item => !touch || item.id !== 'keyboard');
+  const [preferredTab, setTab] = useState<typeof tabs[number]['id']>(() => {
     try {
       const stored = localStorage.getItem('palette:sidebar-tab');
       return tabs.find(item => item.id === stored)?.id ?? 'settings';
@@ -113,17 +121,18 @@ export function SettingsPanel({ open, settings, onSave, onClose, palette, vision
       return 'settings';
     }
   });
+  const tab = visibleTabs.find(item => item.id === preferredTab)?.id ?? 'settings';
   useEffect(() => {
     try {
-      localStorage.setItem('palette:sidebar-tab', tab);
+      localStorage.setItem('palette:sidebar-tab', preferredTab);
     } catch {
       // Tabs still work when browser storage is blocked.
     }
-  }, [tab]);
+  }, [preferredTab]);
   const panel = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     if (open) panel.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus();
-  }, [open]);
+  }, [open, touch]);
   return <aside ref={panel} id="settings-panel" className="settings-panel" aria-label="Palette menu" data-open={open} inert={!open} aria-hidden={!open}
     onKeyDown={event => {
       if (event.key === 'Escape') { event.preventDefault(); onClose(); }
@@ -133,12 +142,12 @@ export function SettingsPanel({ open, settings, onSave, onClose, palette, vision
         <div className="sidebar-tabs" role="tablist" aria-label="Sidebar" onKeyDown={event => {
           if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
           event.preventDefault();
-          const index = tabs.findIndex(item => item.id === tab);
-          const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length].id;
+          const index = visibleTabs.findIndex(item => item.id === tab);
+          const next = visibleTabs[event.key === 'Home' ? 0 : event.key === 'End' ? visibleTabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + visibleTabs.length) % visibleTabs.length].id;
           setTab(next);
           event.currentTarget.querySelector<HTMLElement>(`#${next}-tab`)?.focus();
         }}>
-          {tabs.map(item => <button key={item.id} id={`${item.id}-tab`} type="button" role="tab"
+          {visibleTabs.map(item => <button key={item.id} id={`${item.id}-tab`} type="button" role="tab"
             aria-label={item.label} title={item.label}
             aria-controls={`${item.id}-content`} aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} onClick={() => setTab(item.id)}>
             <Icon name={item.icon} />
@@ -173,7 +182,7 @@ export function SettingsPanel({ open, settings, onSave, onClose, palette, vision
               <span aria-hidden="true">px</span>
             </span>
           </label>)}
-          <div className="settings-actions"><button type="reset">Reset defaults</button>
+          <div className="settings-actions"><button type="reset">Reset</button>
             <button className="save-button" type="submit">Save<Icon name="check" /></button>
           </div>
         </form>

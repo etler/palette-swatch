@@ -128,7 +128,7 @@ test('Tab exposes a visible target and Escape clears it', async ({ page }) => {
 });
 
 for (const key of ['Enter', 'Space']) {
-  test(`${key} first outlines the mouse selection, then activates it`, async ({ page }) => {
+  test(`${key} outlines the mouse selection and activates focused controls`, async ({ page }) => {
     const swatch = page.getByRole('region', { name: 'Color 3', exact: true });
     await swatch.click({ position: { x: 100, y: 200 } });
     await expect(swatch).toHaveCSS('outline-style', 'none');
@@ -138,9 +138,8 @@ for (const key of ['Enter', 'Space']) {
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.keyboard.press(key);
     if (key === 'Space') {
-      await expect(page.locator('.swatch')).toHaveCount(6);
+      await expect(page.locator('.swatch')).toHaveCount(5);
       await expect(page.getByRole('dialog')).toHaveCount(0);
-      await page.keyboard.press('Control+z');
     } else {
       await expect(page.getByRole('dialog', { name: 'Color picker' })).toBeVisible();
       await page.keyboard.press('Escape');
@@ -520,14 +519,11 @@ test('Tab interleaves add buttons with swatches while arrows skip them', async (
 });
 
 for (const focused of [false, true]) {
-  test(`double Space inserts after a ${focused ? 'focused' : 'selected'} swatch and can be undone`, async ({ page }) => {
+  test(`Shift+= inserts after a ${focused ? 'focused' : 'selected'} swatch and can be undone`, async ({ page }) => {
     const last = page.getByRole('region', { name: 'Color 5', exact: true });
     await last.click({ position: { x: 100, y: 200 } });
     if (focused) await page.keyboard.press('Tab');
-    await page.keyboard.press('Space');
-    await expect(last).toBeFocused();
-    await expect(page.locator('.swatch')).toHaveCount(5);
-    await page.keyboard.press('Space');
+    await page.keyboard.press('Shift+Equal');
     await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51', 'DA3C41']);
     await expect(page.getByRole('region', { name: 'Color 6', exact: true })).toBeFocused();
     await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -538,21 +534,27 @@ for (const focused of [false, true]) {
   });
 }
 
-test('Space insertion requires two distinct presses on the same swatch within the double-press interval', async ({ page }) => {
-  await page.clock.install();
-  await page.getByRole('region', { name: 'Color 2', exact: true }).click({ position: { x: 100, y: 200 } });
-  await page.keyboard.down('Space');
-  await page.keyboard.down('Space');
-  await expect(page.locator('.swatch')).toHaveCount(5);
-  await page.keyboard.up('Space');
-  await page.clock.runFor(400);
+test('double Space only focuses and holding Shift+= adds just once', async ({ page }) => {
+  const swatch = page.getByRole('region', { name: 'Color 2', exact: true });
+  await swatch.click({ position: { x: 100, y: 200 } });
   await page.keyboard.press('Space');
-  await expect(page.locator('.swatch')).toHaveCount(5);
-  await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Space');
+  await expect(swatch).toBeFocused();
   await expect(page.locator('.swatch')).toHaveCount(5);
-  await page.keyboard.press('Space');
-  await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'EFB366', 'F4A261', 'E76F51']);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.keyboard.down('Shift');
+  await page.keyboard.down('Equal');
+  await page.keyboard.down('Equal');
+  await page.keyboard.up('Equal');
+  await page.keyboard.up('Shift');
+  await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', '8AB17D', 'E9C46A', 'F4A261', 'E76F51']);
+});
+
+test('Shift+= types in a name without adding a swatch', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add name for Color 2', exact: true }).click();
+  await page.keyboard.press('Shift+Equal');
+  await expect(page.getByLabel('Color Name', { exact: true })).toHaveValue('+');
+  await expect(page.locator('.swatch')).toHaveCount(5);
 });
 
 test('Space on focused hex and name titles opens their popups', async ({ page }) => {

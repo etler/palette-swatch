@@ -52,3 +52,27 @@ test('scrolled palettes constrain dragging to the visible viewport', async ({ pa
   await expect.poll(() => swatch.evaluate(element => Math.round(element.getBoundingClientRect().bottom))).toBe(340);
   await page.mouse.up();
 });
+
+test.describe('touch dragging', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+  test('follows the finger past every edge and returns to its origin', async ({ page, context }) => {
+    await page.goto('/#264653#2A9D8F#E9C46A#F4A261#E76F51');
+    const swatch = page.locator('.swatch').nth(1);
+    const bounds = await swatch.boundingBox();
+    if (!bounds) throw new Error('Missing swatch');
+    const start = { x: bounds.x + bounds.width / 2, y: bounds.y + 100 };
+    const session = await context.newCDPSession(page);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
+    await expect(page.locator('.dragged')).toHaveCount(1);
+    for (const point of [{ x: 2, y: 2 }, { x: 388, y: 842 }, start]) {
+      await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [point] });
+      await expect.poll(() => swatch.boundingBox()).toMatchObject({
+        x: expect.closeTo(bounds.x + point.x - start.x, 0),
+        y: expect.closeTo(bounds.y + point.y - start.y, 0),
+      });
+    }
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51']);
+  });
+});

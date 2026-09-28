@@ -1,8 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { atFraction, channels, clamp, coordinates, fraction, modes, parseHex, replace, toHex, type Mode } from './color';
 
-export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' | 'eye' | 'bookmark' | 'download' | 'export' | 'print' }) {
+export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' | 'eye' | 'bookmark' | 'download' | 'export' | 'print' | 'undo' | 'redo' | 'trash' }) {
   const paths = {
+    trash: <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />,
+    undo: <path d="m9 14-5-5 5-5M4 9h10a6 6 0 0 1 0 12" />,
+    redo: <path d="m15 14 5-5-5-5M20 9H10a6 6 0 0 0 0 12" />,
     print: <><path d="M6 9V3h12v6M6 17H3v-8h18v8h-3M17 12h1" /><rect x="6" y="14" width="12" height="7" rx="1" /></>,
     export: <path d="M12 15V3m-5 5 5-5 5 5M4 16v5h16v-5" />,
     download: <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" />,
@@ -102,8 +105,9 @@ function pickerControls(form: HTMLFormElement) {
   return Array.from(form.querySelectorAll<HTMLInputElement>('input[name="hex"], input[type="range"]'));
 }
 
-export function Picker({ mode, values, original, onChange, onMode, onShades, onAccept, notify, bookmarked, onBookmark }: {
+export function Picker({ mode, values, original, onChange, onMode, onShades, onAccept, onCancel, notify, bookmarked, onBookmark }: {
   readonly mode: Mode; readonly values: readonly number[]; readonly original: string;
+  readonly onCancel: () => void;
   readonly bookmarked: boolean; readonly onBookmark: (hex: string) => void;
   readonly onChange: (values: readonly number[]) => void; readonly onMode: (mode: Mode) => void;
   readonly onShades: (channel: number, values: readonly number[]) => void; readonly onAccept: (values: readonly number[]) => void; readonly notify: (message: string) => void;
@@ -198,7 +202,10 @@ export function Picker({ mode, values, original, onChange, onMode, onShades, onA
     }
   }}>
     <div className="picker-main">
-      <div className="popup-heading"><span>Edit color</span><button type="submit" className="icon-button" aria-label="Close color picker"><Icon name="close" /></button></div>
+      <div className="popup-heading"><span>Edit color</span><div className="picker-heading-actions">
+        <button type="button" className="icon-button" aria-label="Cancel color changes" onClick={onCancel}><Icon name="close" /></button>
+        <button type="submit" className="icon-button" aria-label="Apply color changes"><Icon name="check" /></button>
+      </div></div>
       {(mode === 'HSB' || mode === 'HSL') && <Plane mode={mode} values={values} original={previous} onChange={onChange} />}
       <div className="hex-field"><span className="color-chip" style={{ background: `#${hex}` }} /><label htmlFor="hex-input">HEX</label>
         <input key={hex} id="hex-input" name="hex" defaultValue={hex} required pattern="#?[A-Fa-f0-9]{6}" maxLength={7} aria-label="Hex color" spellCheck={false} onBlur={event => { const parsed = parseHex(event.currentTarget.value); if (parsed) onChange(coordinates(parsed, mode)); }} />

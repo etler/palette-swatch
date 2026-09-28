@@ -244,14 +244,53 @@ test('standalone file loads without a server', async ({ page }) => {
   await expect(page.getByRole('dialog')).toBeVisible();
 });
 
-for (const [name, expected] of [['Color 1', ['264653', '287271', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51']], ['Color 5', ['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51', 'DA3C41']]] as const) {
-  test(`double-clicking ${name} inserts to its right using the normal insertion color`, async ({ page }) => {
+for (const [name, hex] of [['Color 1', '264653'], ['Color 5', 'E76F51']]) {
+  test(`double-clicking ${name} opens its color picker`, async ({ page }) => {
     await page.getByRole('region', { name, exact: true }).dblclick({ position: { x: 100, y: 200 } });
-    await expect(page.locator('.hex-button')).toHaveText([...expected]);
+    await expect(page.getByRole('dialog', { name: 'Color picker' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Hex color' })).toHaveValue(hex);
+    await expect(page.locator('.swatch')).toHaveCount(5);
+    await page.getByRole('textbox', { name: 'Hex color' }).fill('ABC123');
+    await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await page.keyboard.press('Control+z');
+    await expect(page.getByRole('region', { name, exact: true }).locator('.hex-button')).toHaveText(hex);
+  });
+}
+
+for (const selector of ['.hex-button', '.name-button']) {
+  test(`mouse dragging from ${selector} does not move the swatch`, async ({ page }) => {
+    const bounds = await page.locator('.swatch').first().locator(selector).boundingBox();
+    if (!bounds) throw new Error('Missing title');
+    const x = bounds.x + bounds.width / 2;
+    const y = bounds.y + bounds.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 600, y, { steps: 5 });
+    await expect(page.locator('.dragged')).toHaveCount(0);
+    await page.mouse.up();
     await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51']);
-    await page.keyboard.press('Control+Shift+z');
-    await expect(page.locator('.hex-button')).toHaveText([...expected]);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  });
+}
+
+for (const action of ['cancel', 'apply', 'outside'] as const) {
+  test(`color picker ${action} handles preview and pending hex edits`, async ({ page }) => {
+    const swatch = page.locator('.hex-button').first();
+    await swatch.click();
+    const picker = page.getByRole('dialog', { name: 'Color picker' });
+    const hex = picker.getByRole('textbox', { name: 'Hex color' });
+    await hex.fill('112233');
+    await picker.getByText('Edit color', { exact: true }).click();
+    await expect(swatch).toHaveText('112233');
+    await hex.fill('445566');
+    if (action === 'outside') await page.mouse.click(1400, 20);
+    else await picker.getByRole('button', { name: action === 'cancel' ? 'Cancel color changes' : 'Apply color changes' }).click();
+    await expect(picker).toHaveCount(0);
+    await expect(swatch).toHaveText(action === 'cancel' ? '264653' : '445566');
+    await expect(page).toHaveURL(new RegExp(action === 'cancel' ? '#264653#' : '#445566#'));
+    if (action !== 'cancel') {
+      await page.keyboard.press('Control+z');
+      await expect(swatch).toHaveText('264653');
+    }
   });
 }

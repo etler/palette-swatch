@@ -11,7 +11,7 @@ type Editor = Readonly<{ kind: 'closed' }>
   | Readonly<{ kind: 'name'; swatch: Swatch; x: number }>
   | Readonly<{ kind: 'color'; swatch: Swatch; x: number; values: readonly number[] }>
   | Readonly<{ kind: 'shades'; swatch: Swatch; values: readonly number[]; channel: number }>;
-type Drag = Readonly<{ id: string; startX: number; startY: number; x: number; y: number; width: number; height: number; origin: number }>;
+type Drag = Readonly<{ phase: 'pending' | 'dragging'; id: string; startX: number; startY: number; x: number; y: number; width: number; height: number; origin: number; startedAt: number; travel: number; overTrash: boolean; pointerType: string }>;
 const paint = (hex: string): CSSProperties => ({ '--color': `#${hex}`, '--ink': ink(hex) } as CSSProperties);
 function focusSwatch(id: string, part = 'swatch') {
   const swatch = document.getElementById(`swatch-${id}`);
@@ -27,13 +27,84 @@ function measureTitles(element: HTMLDivElement | null) {
   return () => observer.disconnect();
 }
 
+const doubleTapWindow = 350;
+const touchDragThreshold = 10;
+
+function useTouchControls() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    let touch: Readonly<{ id: number; x: number; y: number; time: number; travel: number }> | undefined;
+    let pending: Readonly<{ x: number; y: number; time: number; timer: ReturnType<typeof setTimeout> }> | undefined;
+    const down = (event: PointerEvent) => {
+      touch = undefined;
+      if (event.pointerType !== 'touch') return;
+      if (event.target instanceof Element && event.target.closest('button, input, select, textarea, a, [contenteditable]')) {
+        clearTimeout(pending?.timer);
+        pending = undefined;
+        return;
+      }
+      touch = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp, travel: 0 };
+    };
+    const move = (event: PointerEvent) => {
+      if (touch?.id === event.pointerId) touch = { ...touch, travel: Math.max(touch.travel, Math.hypot(event.clientX - touch.x, event.clientY - touch.y)) };
+    };
+    const up = (event: PointerEvent) => {
+      const gesture = touch;
+      touch = undefined;
+      if (!gesture || gesture.id !== event.pointerId || gesture.travel >= touchDragThreshold || event.timeStamp - gesture.time >= doubleTapWindow) return;
+      if (pending && event.timeStamp - pending.time <= doubleTapWindow && Math.hypot(event.clientX - pending.x, event.clientY - pending.y) < 24) {
+        clearTimeout(pending.timer);
+        pending = undefined;
+        return;
+      }
+      if (pending) {
+        clearTimeout(pending.timer);
+        setVisible(current => !current);
+      }
+      pending = { x: event.clientX, y: event.clientY, time: event.timeStamp, timer: setTimeout(() => {
+        setVisible(current => !current);
+        pending = undefined;
+      }, doubleTapWindow) };
+    };
+    const cancel = () => { touch = undefined; };
+    window.addEventListener('pointerdown', down, true);
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', up, true);
+    window.addEventListener('pointercancel', cancel, true);
+    return () => {
+      clearTimeout(pending?.timer);
+      window.removeEventListener('pointerdown', down, true);
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', up, true);
+      window.removeEventListener('pointercancel', cancel, true);
+    };
+  }, []);
+  return visible;
+}
+
 function App() {
   const [history, dispatch] = useReducer(historyReducer, location.hash, hash => ({ past: [], present: parse(hash), future: [] }));
   const [mode, setMode] = useState<Mode>('HSB');
   const [vision, setVision] = useState<VisionMode>('Normal');
   const [editor, setEditor] = useState<Editor>({ kind: 'closed' });
   const [drag, setDrag] = useState<Drag | null>(null);
+  const dragging = drag?.phase === 'dragging';
+  useEffect(() => {
+    if (drag?.phase !== 'pending') return;
+    const timeout = setTimeout(() => setDrag(current => current?.phase === 'pending' ? { ...current, phase: 'dragging' } : current), doubleTapWindow);
+    return () => clearTimeout(timeout);
+  }, [drag?.phase, drag?.startedAt]);
   const [notice, setNotice] = useState('');
+  const touchControls = useTouchControls();
+  const touchButton = useRef<HTMLButtonElement | null>(null);
+  const touchActivation = useRef<HTMLButtonElement | null>(null);
+  const trashTarget = useRef<HTMLDivElement>(null);
+  const overTrash = (x: number, y: number) => {
+    const bounds = trashTarget.current?.getBoundingClientRect();
+    return !!bounds && x >= bounds.left && x < bounds.right && y >= bounds.top && y < bounds.bottom;
+  };
+  const mobileSelection = useRef(history.present[0].id);
+  const lastTouchTap = useRef<Readonly<{ id: string; time: number; x: number; y: number }> | undefined>(undefined);
   const [bookmarks, setBookmarks] = useBookmarks(setNotice);
   const [keyboard, setKeyboard] = useState(false);
   const [showInfo, setShowInfo] = useState(() => {
@@ -102,17 +173,16 @@ function App() {
       // Outline controls still work when browser storage is blocked.
     }
   }, [outline]);
-  const swatchSpace = useRef<Readonly<{ id: string; time: number }> | undefined>(undefined);
   const activateOutline = (primary: 'mode' | 'color' = 'mode') => setOutline(current => primary === 'color'
     ? { mode: current.mode === 'none' ? 'outer' : current.mode, color: current.color === 'white' ? 'black' : 'white' }
     : { ...current, mode: current.mode === 'none' ? 'outer' : current.mode === 'outer' ? 'swatches' : 'none' });
   const palette = history.present;
   const rows = Math.ceil(palette.length / capacity);
   const columns = Math.ceil(palette.length / rows);
-  const target = drag ? Math.min(palette.length - 1,
+  const target = dragging ? Math.min(palette.length - 1,
     clamp(Math.round((drag.y - drag.startY) / drag.height) + Math.floor(drag.origin / columns), 0, rows - 1) * columns +
     clamp(Math.round((drag.x - drag.startX) / drag.width) + drag.origin % columns, 0, columns - 1)) : 0;
-  const arranged = drag ? move(palette, drag.id, target) : palette;
+  const arranged = dragging ? move(palette, drag.id, target) : palette;
   const previewPalette = palette.map(swatch => editor.kind === 'color' && editor.swatch.id === swatch.id ? { ...swatch, hex: toHex(mode, editor.values) } : swatch);
   const update = (swatch: Swatch) => palette.map(item => item.id === swatch.id ? swatch : item);
   const commit = (next: Palette) => {
@@ -142,6 +212,16 @@ function App() {
       requestAnimationFrame(() => focusSwatch(next[Math.min(index, next.length - 1)].id));
     }
   };
+  const mobileAction = (type: 'undo' | 'add' | 'redo') => {
+    lastTouchTap.current = undefined;
+    if (type === 'add') { add(palette.length); return; }
+    const index = Math.max(0, palette.findIndex(item => item.id === mobileSelection.current));
+    const next = type === 'undo' ? history.past.at(-1) : history.future[0];
+    if (!next) return;
+    const selected = next.find(item => item.id === mobileSelection.current) ?? next[Math.min(index, next.length - 1)];
+    dispatch({ type });
+    requestAnimationFrame(() => focusSwatch(selected.id));
+  };
   const dismiss = () => {
     if (editor.kind !== 'closed') {
       const id = editor.swatch.id;
@@ -167,7 +247,6 @@ function App() {
   }, [notice]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== ' ' || event.ctrlKey || event.metaKey || event.altKey) swatchSpace.current = undefined;
       if ((event.ctrlKey || event.metaKey) && event.key === ' ' && !event.altKey) {
         event.preventDefault();
         event.stopPropagation();
@@ -215,6 +294,15 @@ function App() {
       const active = document.activeElement;
       const swatch = active?.closest<HTMLElement>('.swatch');
       const index = palette.findIndex(item => `swatch-${item.id}` === swatch?.id);
+      if (event.shiftKey && event.code === 'Equal' && !event.ctrlKey && !event.metaKey && !event.altKey && !event.isComposing) {
+        event.preventDefault();
+        if (!event.repeat) {
+          setKeyboard(true);
+          const id = add(Math.max(0, index) + 1);
+          if (!keyboard) requestAnimationFrame(() => focusSwatch(id));
+        }
+        return;
+      }
       if (event.key === 'Tab') {
         if (!keyboard && !event.shiftKey && index >= 0) {
           event.preventDefault();
@@ -227,13 +315,8 @@ function App() {
         event.preventDefault();
         if (event.repeat) return;
         const selected = palette[Math.max(0, index)];
-        const previous = swatchSpace.current;
         setKeyboard(true);
         focusSwatch(selected.id);
-        if (previous?.id === selected.id && event.timeStamp - previous.time <= 350) {
-          swatchSpace.current = undefined;
-          add(Math.max(0, index) + 1);
-        } else swatchSpace.current = { id: selected.id, time: event.timeStamp };
         return;
       }
       if (!keyboard && !event.ctrlKey && !event.metaKey && !event.altKey && ['Enter', ' '].includes(event.key) && (index >= 0 || active === document.body)) {
@@ -285,7 +368,7 @@ function App() {
         event.preventDefault(); swatch?.querySelector<HTMLButtonElement>('.hex-button')?.click();
       }
     };
-    const onPointer = () => { swatchSpace.current = undefined; setKeyboard(false); };
+    const onPointer = () => setKeyboard(false);
     const onPaste = (event: ClipboardEvent) => {
       if (event.target instanceof Element && event.target.closest('.swatch-info')) return;
       const element = document.activeElement?.closest<HTMLElement>('.swatch');
@@ -305,6 +388,7 @@ function App() {
     const swatch = { id: crypto.randomUUID(), name: '', hex };
     commit([...palette.slice(0, position), swatch, ...palette.slice(position)]);
     if (keyboard) requestAnimationFrame(() => focusSwatch(swatch.id));
+    return swatch.id;
   };
   const pasteColor = useEffectEvent((id: string, text: string) => {
     const index = palette.findIndex(swatch => swatch.id === id);
@@ -316,16 +400,48 @@ function App() {
   });
   const addControl = (index: number) => {
     const anchor = Math.max(0, index - 1);
-    return !drag && editor.kind === 'closed' && <div className="add-zone" data-edge={index === 0 ? 'start' : index % columns === 0 || index === palette.length ? 'end' : undefined}
+    return !dragging && editor.kind === 'closed' && <div className="add-zone" data-edge={index === 0 ? 'start' : index % columns === 0 || index === palette.length ? 'end' : undefined}
       style={{ gridColumn: `${anchor % columns + 1} / span 1`, gridRow: `${Math.floor(anchor / columns) + 1} / span 1` }}>
       <button className="add-color" aria-label={`Add color at position ${index + 1}`} onClick={() => add(index)}><Icon name="plus" /></button>
     </div>;
   };
   return <>
     <h1 className="sr-only">Palette explorer</h1>
-    <div className="app-layout">
+    <div className="app-layout" data-touch-controls={touchControls}>
     <div className="palette-workspace">
-    <main ref={paletteElement} className={`palette ${showInfo ? 'has-info' : ''} ${drag ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter" style={{ '--columns': columns, '--rows': rows, '--outline-color': outline.color, '--outer-border': settings.windowOutlineWidth === undefined ? undefined : `${settings.windowOutlineWidth}px`, '--swatch-border': settings.borderOutlineWidth === undefined ? undefined : `${settings.borderOutlineWidth}px` } as CSSProperties}
+    <main ref={paletteElement} className={`palette ${showInfo ? 'has-info' : ''} ${dragging ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter Shift+=" style={{ '--columns': columns, '--rows': rows, '--outline-color': outline.color, '--outer-border': settings.windowOutlineWidth === undefined ? undefined : `${settings.windowOutlineWidth}px`, '--swatch-border': settings.borderOutlineWidth === undefined ? undefined : `${settings.borderOutlineWidth}px` } as CSSProperties}
+      onFocusCapture={event => {
+        const swatch = event.target.closest('.swatch');
+        if (swatch) mobileSelection.current = swatch.id.slice('swatch-'.length);
+      }}
+      onPointerDownCapture={event => {
+        touchActivation.current = null;
+        if (event.pointerType !== 'touch' || (event.target instanceof Element && event.target.closest('button, input, .swatch-info'))) lastTouchTap.current = undefined;
+        if (event.pointerType !== 'touch') return;
+        const button = event.target instanceof Element ? event.target.closest('button') : null;
+        touchButton.current = button && getComputedStyle(button).opacity === '1' ? button : null;
+        if (button && !touchButton.current) {
+          event.preventDefault();
+          button.focus({ preventScroll: true });
+        }
+      }}
+      onClickCapture={event => {
+        if (!(event.nativeEvent instanceof PointerEvent) || event.nativeEvent.pointerType !== 'touch') return;
+        const activation = touchActivation.current;
+        touchActivation.current = null;
+        if (activation) {
+          event.preventDefault();
+          event.stopPropagation();
+          activation.click();
+          return;
+        }
+        const button = event.target instanceof Element ? event.target.closest('button') : null;
+        // A touch can synthesize a click on a button revealed after contact began.
+        if (button && button !== touchButton.current) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
       onCopy={event => {
         const swatch = document.activeElement?.closest<HTMLElement>('.swatch');
         const color = palette.find(item => `swatch-${item.id}` === swatch?.id);
@@ -334,8 +450,13 @@ function App() {
         setKeyboard(true);
         focusSwatch(color.id);
       }}
+      onContextMenu={event => {
+        if (drag?.pointerType === 'touch' || event.nativeEvent instanceof PointerEvent && event.nativeEvent.pointerType === 'touch') event.preventDefault();
+      }}
       onPointerDown={event => {
-        if (event.button !== 0 || (event.target instanceof Element && event.target.closest('button, input')) || editor.kind !== 'closed') return;
+        const control = event.target instanceof Element ? event.target.closest('button, input') : null;
+        if (event.button !== 0 || editor.kind !== 'closed') return;
+        if (control && !(event.pointerType === 'touch' && control.matches('.hex-button, .name-button'))) return;
         const bounds = event.currentTarget.getBoundingClientRect();
         const left = bounds.left + event.currentTarget.clientLeft;
         const top = bounds.top + event.currentTarget.clientTop;
@@ -352,7 +473,7 @@ function App() {
         // Keep the pointer geometry steady while starting a drag.
         event.currentTarget.querySelectorAll<HTMLElement>('.swatch')[origin].focus({ preventScroll: true });
         event.currentTarget.setPointerCapture(event.pointerId);
-        setDrag({ id: palette[origin].id, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, width, height, origin });
+        setDrag({ phase: event.pointerType === 'touch' ? 'pending' : 'dragging', id: palette[origin].id, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, width, height, origin, startedAt: event.timeStamp, travel: 0, overTrash: false, pointerType: event.pointerType });
       }}
       onPointerMove={event => {
         if (!drag) return;
@@ -367,33 +488,52 @@ function App() {
         const visibleHeight = Math.min(window.innerHeight, top + element.clientHeight) - visibleTop;
         const minX = drag.startX - (drag.origin % columns) * drag.width + visibleLeft - left;
         const minY = drag.startY - Math.floor(drag.origin / columns) * drag.height + element.scrollTop + visibleTop - top;
+        const travel = Math.max(drag.travel, Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY));
         setDrag({ ...drag,
-          x: clamp(event.clientX, minX, minX + Math.max(0, visibleWidth - (drag.width - gap))),
-          y: clamp(event.clientY, minY, minY + Math.max(0, visibleHeight - (drag.height - gap))),
+          phase: travel >= touchDragThreshold ? 'dragging' : drag.phase,
+          overTrash: overTrash(event.clientX, event.clientY),
+          travel,
+          x: drag.pointerType === 'touch' ? event.clientX : clamp(event.clientX, minX, minX + Math.max(0, visibleWidth - (drag.width - gap))),
+          y: drag.pointerType === 'touch' ? event.clientY : clamp(event.clientY, minY, minY + Math.max(0, visibleHeight - (drag.height - gap))),
         });
       }}
-      onPointerUp={() => { if (drag) { commit(arranged); setDrag(null); } }}
-      onPointerCancel={() => setDrag(null)}
-      onDoubleClick={event => {
-        if (editor.kind !== 'closed' || (event.target instanceof Element && event.target.closest('button, input'))) return;
+      onPointerUp={event => {
+        if (!drag) return;
+        const previous = lastTouchTap.current;
+        const title = event.pointerType === 'touch' && touchButton.current?.matches('.hex-button, .name-button') ? touchButton.current : null;
+        const tap = !dragging && !title && event.pointerType === 'touch' && drag.travel < touchDragThreshold && event.timeStamp - drag.startedAt < doubleTapWindow;
+        const doubleTap = tap && previous?.id === drag.id && event.timeStamp - previous.time <= doubleTapWindow
+          && Math.hypot(event.clientX - previous.x, event.clientY - previous.y) < 24;
+        lastTouchTap.current = tap && !doubleTap ? { id: drag.id, time: event.timeStamp, x: event.clientX, y: event.clientY } : undefined;
+        if (dragging && drag.travel >= touchDragThreshold && overTrash(event.clientX, event.clientY)) remove(drag.id);
+        // Open after the browser's click light-dismiss step, not during pointer-up.
+        else if (!dragging && title && drag.travel < touchDragThreshold) touchActivation.current = title;
+        else if (doubleTap) touchActivation.current = document.getElementById(`swatch-${drag.id}`)?.querySelector<HTMLButtonElement>('.hex-button') ?? null;
+        else if (dragging) commit(arranged);
+        touchButton.current = null;
+        setDrag(null);
+      }}
+      onPointerCancel={() => { lastTouchTap.current = undefined; setDrag(null); }}
+      onClick={event => {
+        if (event.detail !== 2 || (event.nativeEvent instanceof PointerEvent && event.nativeEvent.pointerType === 'touch')) return;
+        if (editor.kind !== 'closed' || (event.target instanceof Element && event.target.closest('button, input, .swatch-info'))) return;
         // Pointer capture routes clicks here; pointer-down already selected the swatch.
         const swatch = document.activeElement?.closest<HTMLElement>('.swatch');
         if (!swatch) return;
         const bounds = swatch.getBoundingClientRect();
         if (event.clientX < bounds.left || event.clientX >= bounds.right || event.clientY < bounds.top || event.clientY >= bounds.bottom) return;
-        const index = palette.findIndex(item => `swatch-${item.id}` === swatch.id);
-        if (index >= 0) add(index + 1);
+        swatch.querySelector<HTMLButtonElement>('.hex-button')?.click();
       }}>
       {previewPalette.map((swatch, index) => {
         const hex = swatch.hex;
         const label = swatch.name || `Color ${index + 1}`;
         const position = arranged.findIndex(item => item.id === swatch.id);
-        const isDragged = drag?.id === swatch.id;
+        const isDragged = drag?.phase === 'dragging' && drag.id === swatch.id;
         const exploring = editor.kind === 'shades' && editor.swatch.id === swatch.id;
         return <Fragment key={swatch.id}>
           {index === 0 && addControl(0)}
-          <section id={`swatch-${swatch.id}`} data-target="swatch" className={`swatch ${isDragged ? 'dragged' : ''}`} aria-label={label} aria-keyshortcuts="Control+ArrowLeft Control+ArrowRight Alt+ArrowLeft Alt+ArrowRight Delete Backspace" tabIndex={0}
-            style={{ ...paint(simulateVision(hex, vision)), '--offset-x': position % columns - index % columns, '--offset-y': Math.floor(position / columns) - Math.floor(index / columns), ...(isDragged ? { transform: `translate(${drag.x - drag.startX}px, ${drag.y - drag.startY}px)` } : {}) } as CSSProperties}>
+          <section id={`swatch-${swatch.id}`} data-target="swatch" data-over-trash={isDragged && drag.overTrash} className={`swatch ${isDragged ? 'dragged' : ''}`} aria-label={label} aria-keyshortcuts="Control+ArrowLeft Control+ArrowRight Alt+ArrowLeft Alt+ArrowRight Delete Backspace" tabIndex={0}
+            style={{ ...paint(simulateVision(hex, vision)), '--offset-x': position % columns - index % columns, '--offset-y': Math.floor(position / columns) - Math.floor(index / columns), ...(isDragged ? { transform: `translate(${drag.x - drag.startX}px, ${drag.y - drag.startY}px) scale(var(--drag-scale))` } : {}) } as CSSProperties}>
             {exploring ? <div className="shade-list" role="group" aria-label="Choose a shade" onKeyDown={event => {
               if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
               event.preventDefault();
@@ -425,11 +565,11 @@ function App() {
                 }}><span className={swatch.name ? undefined : 'name-placeholder'}>{swatch.name || 'Add Name'}</span></button>
               </div>
             </div>}
-            {!drag && editor.kind === 'closed' && <>
+            {!dragging && editor.kind === 'closed' && <>
               <span className="add-hover-start" aria-hidden="true" />
               <span className="add-hover-end" aria-hidden="true" />
             </>}
-            {!drag && editor.kind === 'closed' && palette.length > 1 && ['top', 'bottom'].map(edge => <div key={edge} className={`delete-zone delete-zone-${edge}`}>
+            {!dragging && editor.kind === 'closed' && palette.length > 1 && ['top', 'bottom'].map(edge => <div key={edge} className={`delete-zone delete-zone-${edge}`}>
               <button className="delete-color" tabIndex={edge === 'bottom' ? -1 : undefined} aria-label={`Delete ${label}`} onClick={() => remove(swatch.id)}><Icon name="close" /></button>
             </div>)}
           </section>
@@ -437,21 +577,21 @@ function App() {
         </Fragment>;
       })}
       {rows * columns > palette.length && <div className="empty-swatch" style={{ gridColumn: `span ${rows * columns - palette.length}`, color: outline.color === 'white' ? 'black' : 'white' }}>
-        {!drag && editor.kind === 'closed' && <button className="add-color" aria-label="Add color in empty space" onClick={() => add(palette.length)}><Icon name="plus" /></button>}
+        {!dragging && editor.kind === 'closed' && <button className="add-color" aria-label="Add color in empty space" onClick={() => add(palette.length)}><Icon name="plus" /></button>}
       </div>}
-      {!drag && editor.kind === 'closed' && <div className="outline-zone outline-zone-top-left">
+      {!dragging && editor.kind === 'closed' && <div className="outline-zone outline-zone-top-left">
         <button className="outline-button" aria-label="Color information" aria-pressed={showInfo} onClick={() => setShowInfo(current => !current)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7h.01" />
           </svg>
         </button>
       </div>}
-      {!drag && editor.kind === 'closed' && <div className="outline-zone outline-zone-top-right">
+      {!dragging && editor.kind === 'closed' && <div className="outline-zone outline-zone-top-right">
         <button ref={settingsButton} className="outline-button" aria-label="Menu" aria-keyshortcuts="Shift+/" aria-expanded={settingsOpen} aria-controls="settings-panel" onClick={() => setSettingsOpen(open => !open)}>
           <Icon name="menu" />
         </button>
       </div>}
-      {!drag && editor.kind === 'closed' && ['bottom-left', 'bottom-right'].map(corner => {
+      {!dragging && editor.kind === 'closed' && ['bottom-left', 'bottom-right'].map(corner => {
         const action = corner.endsWith('right') ? 'color' : 'mode';
         return <div key={corner} className={`outline-zone outline-zone-${corner}`}>
           <button className="outline-button" tabIndex={0} aria-label={`${action === 'color' ? 'Change outline color' : 'Cycle outline mode'} (${outline.mode === 'none' ? 'edge to edge' : outline.mode === 'outer' ? 'outside border' : 'swatch borders'}, ${outline.color})`} aria-keyshortcuts={action === 'mode' ? 'Control+Space Meta+Space' : 'Control+Shift+Space Meta+Shift+Space'}
@@ -464,11 +604,18 @@ function App() {
         </div>;
       })}
     </main>
+    {!dragging && editor.kind === 'closed' && <div className="mobile-swatch-actions" role="group" aria-label="Palette actions">
+      <button type="button" aria-label="Undo" disabled={!history.past.length} onClick={() => mobileAction('undo')}><Icon name="undo" /></button>
+      <button type="button" aria-label="Add swatch" onClick={() => mobileAction('add')}><Icon name="plus" /></button>
+      <button type="button" aria-label="Redo" disabled={!history.future.length} onClick={() => mobileAction('redo')}><Icon name="redo" /></button>
+    </div>}
+    {drag?.pointerType === 'touch' && palette.length > 1 && <div ref={trashTarget} className="trash-target" role="img" aria-label="Delete swatch"
+      data-active={drag.overTrash} style={{ visibility: dragging && drag.travel >= touchDragThreshold ? 'visible' : 'hidden' }}><Icon name="trash" /></div>}
     </div>
     <SettingsPanel onSavePalette={() => setBookmarks(current => new Map([...current, ...previewPalette.map(({ hex, name }) => [hex, name] as const)]))} onAddBookmark={(hex, name) => {
       close();
       commit([...previewPalette, { id: crypto.randomUUID(), hex, name }]);
-    }} bookmarks={bookmarks} onRemoveBookmark={hex => setBookmarks(current => new Map([...current].filter(([key]) => key !== hex)))} palette={drag ? move(previewPalette, drag.id, target) : previewPalette} vision={vision} onVision={setVision} open={settingsOpen} settings={settings} onSave={setSettings} onClose={() => {
+    }} bookmarks={bookmarks} onRemoveBookmark={hex => setBookmarks(current => new Map([...current].filter(([key]) => key !== hex)))} palette={dragging ? move(previewPalette, drag.id, target) : previewPalette} vision={vision} onVision={setVision} open={settingsOpen} settings={settings} onSave={setSettings} onClose={() => {
       setSettingsOpen(false);
       settingsButton.current?.focus();
     }} />
@@ -483,7 +630,7 @@ function App() {
       }}><div className="popup-heading"><label htmlFor="name-input">Color Name</label><button type="button" className="icon-button" aria-label="Cancel rename" onClick={dismiss}><Icon name="close" /></button></div>
         <input id="name-input" name="name" defaultValue={editor.swatch.name} maxLength={80} />
         <button className="save-button" type="submit">Save name<Icon name="check" /></button>
-      </form> : <Picker bookmarked={bookmarks.has(toHex(mode, editor.values))} onBookmark={hex => {
+      </form> : <Picker onCancel={dismiss} bookmarked={bookmarks.has(toHex(mode, editor.values))} onBookmark={hex => {
         setBookmarks(current => current.has(hex)
           ? new Map([...current].filter(([key]) => key !== hex))
           : new Map([...current, [hex, editor.swatch.name]]));
