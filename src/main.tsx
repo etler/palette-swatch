@@ -288,7 +288,24 @@ function App() {
         event.currentTarget.setPointerCapture(event.pointerId);
         setDrag({ id: palette[origin].id, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, width, height, origin });
       }}
-      onPointerMove={event => { if (drag) setDrag({ ...drag, x: event.clientX, y: event.clientY }); }}
+      onPointerMove={event => {
+        if (!drag) return;
+        const element = event.currentTarget;
+        const bounds = element.getBoundingClientRect();
+        const gap = parseFloat(getComputedStyle(element).columnGap);
+        const left = bounds.left + element.clientLeft;
+        const top = bounds.top + element.clientTop;
+        const visibleLeft = Math.max(0, left);
+        const visibleTop = Math.max(0, top);
+        const visibleWidth = Math.min(window.innerWidth, left + element.clientWidth) - visibleLeft;
+        const visibleHeight = Math.min(window.innerHeight, top + element.clientHeight) - visibleTop;
+        const minX = drag.startX - (drag.origin % columns) * drag.width + visibleLeft - left;
+        const minY = drag.startY - Math.floor(drag.origin / columns) * drag.height + element.scrollTop + visibleTop - top;
+        setDrag({ ...drag,
+          x: clamp(event.clientX, minX, minX + Math.max(0, visibleWidth - (drag.width - gap))),
+          y: clamp(event.clientY, minY, minY + Math.max(0, visibleHeight - (drag.height - gap))),
+        });
+      }}
       onPointerUp={() => { if (drag) { commit(arranged); setDrag(null); } }}
       onPointerCancel={() => setDrag(null)}
       onDoubleClick={event => {

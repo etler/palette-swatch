@@ -72,9 +72,12 @@ describe('palette editing', () => {
     expect(palette.map(item => item.name)).toEqual(['Color 1', 'Color 2', 'Color 3', 'Color 4']);
     expect(parse('#not-a-color')).toHaveLength(5);
   });
-  it('swaps exactly two swatches without changing identity or names', () => {
+  it('inserts a swatch at its destination while preserving intervening order and identity', () => {
     const next = move(palette, palette[0].id, 2);
-    expect(next).toEqual([palette[2], palette[1], palette[0], palette[3]]);
+    expect(next).toEqual([palette[1], palette[2], palette[0], palette[3]]);
+    expect(move(palette, palette[3].id, 0)).toEqual([palette[3], palette[0], palette[1], palette[2]]);
+    expect(move(palette, palette[0].id, 99)).toEqual([palette[1], palette[2], palette[3], palette[0]]);
+    expect(move(palette, palette[0].id, -1)).toBe(palette);
     expect(palette[0].hex).toBe('ABC123');
   });
   it('shares custom names and safely encodes URL delimiters and Unicode', () => {

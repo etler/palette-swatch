@@ -61,16 +61,17 @@ test('keyboard navigation and swaps preserve palette order across row boundaries
   await expect(page.locator('.hex-button')).toHaveText(colors);
 });
 
-test('dragging between rows swaps the two swatches with an animated preview', async ({ page }) => {
+test('dragging between rows shifts all intervening swatches in linear order', async ({ page }) => {
   const first = page.getByRole('region', { name: 'Color 1', exact: true });
-  const fifth = page.getByRole('region', { name: 'Color 5', exact: true });
+  const fourth = page.getByRole('region', { name: 'Color 4', exact: true });
   await page.mouse.move(65, 100);
   await page.mouse.down();
   await page.mouse.move(195, 522, { steps: 10 });
   await expect(first).toHaveClass(/dragged/);
-  await expect.poll(() => fifth.evaluate(element => Math.round(element.getBoundingClientRect().top))).toBe(0);
+  await expect.poll(() => fourth.evaluate(element => Math.round(element.getBoundingClientRect().top))).toBe(0);
+  expect(await fourth.evaluate(element => Math.round(element.getBoundingClientRect().left))).toBe(260);
   await page.mouse.up();
-  await expect(page.locator('.hex-button')).toHaveText(['E76F51', '2A9D8F', 'E9C46A', 'F4A261', '264653']);
+  await expect(page.locator('.hex-button')).toHaveText(['2A9D8F', 'E9C46A', 'F4A261', 'E76F51', '264653']);
   await page.keyboard.press('Control+z');
   await expect(page.locator('.hex-button')).toHaveText(colors);
 });

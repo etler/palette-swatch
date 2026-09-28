@@ -36,7 +36,9 @@ export function move(palette: Palette, id: string, target: number): Palette {
   const origin = palette.findIndex(swatch => swatch.id === id);
   if (origin < 0) return palette;
   const position = Math.min(palette.length - 1, Math.max(0, target));
-  return palette.map((swatch, index) => index === origin ? palette[position] : index === position ? palette[origin] : swatch);
+  if (position === origin) return palette;
+  const remaining = palette.filter((_, index) => index !== origin);
+  return [...remaining.slice(0, position), palette[origin], ...remaining.slice(position)];
 }
 
 export function insertionColor(palette: Palette, position: number): string {

@@ -27,7 +27,7 @@ for (const { position, hex } of [{ position: 1, hex: '220017' }, { position: 6, 
 }
 
 for (const { x, destination, order } of [
-  { x: 276, destination: 852, order: ['E9C46A', '2A9D8F', '264653', 'F4A261', 'E76F51'] },
+  { x: 276, destination: 852, order: ['2A9D8F', 'E9C46A', '264653', 'F4A261', 'E76F51'] },
   { x: 300, destination: 588, order: ['264653', 'E9C46A', '2A9D8F', 'F4A261', 'E76F51'] },
 ]) {
   test(`dragging from the add margin at ${x} moves the swatch under the pointer`, async ({ page }) => {
@@ -145,15 +145,22 @@ test('all modes, live color preview, shades, and undo work together', async ({ p
   await expect(page.getByRole('button', { name: 'Edit Color 1 color 264653' })).toBeVisible();
 });
 
-test('dragging swaps two swatches and commits a single undo step', async ({ page }) => {
-  await page.mouse.move(140, 250);
-  await page.mouse.down();
-  await page.mouse.move(745, 260, { steps: 15 });
-  await page.mouse.up();
-  await expect(page).toHaveURL(/#E9C46A:Color%203#2A9D8F#264653:Color%201#F4A261#E76F51$/);
-  await page.keyboard.press('Control+z');
-  await expect(page).toHaveURL(/#264653#2A9D8F#E9C46A#F4A261#E76F51$/);
-});
+for (const [from, to, colors] of [
+  [140, 745, ['2A9D8F', 'E9C46A', '264653', 'F4A261', 'E76F51']],
+  [745, 140, ['E9C46A', '264653', '2A9D8F', 'F4A261', 'E76F51']],
+] as const) {
+  test(`dragging from ${from} to ${to} shifts intervening swatches and commits a single undo step`, async ({ page }) => {
+    await page.mouse.move(from, 250);
+    await page.mouse.down();
+    await page.mouse.move(to, 260, { steps: 15 });
+    await page.mouse.up();
+    await expect(page.locator('.hex-button')).toHaveText([...colors]);
+    await page.keyboard.press('Control+z');
+    await expect(page).toHaveURL(/#264653#2A9D8F#E9C46A#F4A261#E76F51$/);
+    await page.keyboard.press('Control+Shift+z');
+    await expect(page.locator('.hex-button')).toHaveText([...colors]);
+  });
+}
 
 test('global mode survives closing the picker and hash navigation loads a palette', async ({ page }) => {
   await page.getByRole('button', { name: 'Edit Color 1 color 264653' }).click();
