@@ -11,6 +11,10 @@ npm run dev
 
 `npm run build` creates a self-contained `dist/index.html`. Open that file directly or host it on a static web server. No backend or external assets are required.
 
+## Hosted app
+
+[Open Palette](https://etler.github.io/palette-swatch/). Every push to `main` runs the unit tests, builds the app, and deploys `dist` to GitHub Pages through `.github/workflows/pages.yml`. The workflow can also be run manually from GitHub Actions.
+
 ## Interactions
 
 - Click a hex code to edit. Click a name to rename it.
