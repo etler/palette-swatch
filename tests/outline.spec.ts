@@ -252,3 +252,46 @@ test('rapid outline presses each cycle the mode without changing color', async (
     await expect(palette).toHaveCSS('--outline-color', 'white');
   }
 });
+
+test('outline mode and color survive reloads and reopening with a different palette', async ({ page, context }) => {
+  const palette = page.getByRole('main');
+  await page.keyboard.press('Control+Shift+Space');
+  for (const mode of ['outer', 'swatches', 'none']) {
+    await page.reload();
+    await expect(palette).toHaveAttribute('data-outline', mode);
+    await expect(palette).toHaveCSS('--outline-color', 'black');
+    if (mode !== 'none') await page.keyboard.press('Control+Space');
+  }
+  await page.keyboard.press('Control+Space');
+  await page.keyboard.press('Control+Shift+Space');
+  const reopened = await context.newPage();
+  await reopened.goto('/#ABC123#123ABC');
+  await expect(reopened.getByRole('main')).toHaveAttribute('data-outline', 'outer');
+  await expect(reopened.getByRole('main')).toHaveCSS('--outline-color', 'white');
+  await expect(reopened.locator('.hex-button')).toHaveText(['ABC123', '123ABC']);
+  await reopened.close();
+});
+
+test('invalid saved outline preferences fall back to the default', async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem('palette:outline', 'invalid:invalid'));
+  await page.reload();
+  await expect(page.getByRole('main')).toHaveAttribute('data-outline', 'none');
+  await expect(page.getByRole('main')).toHaveCSS('--outline-color', 'white');
+});
+
+test('outline controls remain usable when localStorage is blocked', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', {
+      get() { throw new DOMException('Storage blocked', 'SecurityError'); },
+    });
+  });
+  await page.reload();
+  const palette = page.getByRole('main');
+  await expect(palette).toHaveAttribute('data-outline', 'none');
+  await page.keyboard.press('Control+Space');
+  await expect(palette).toHaveAttribute('data-outline', 'outer');
+  await page.keyboard.press('Control+Shift+Space');
+  await expect(palette).toHaveCSS('--outline-color', 'black');
+  await page.keyboard.press('Control+Space');
+  await expect(palette).toHaveAttribute('data-outline', 'swatches');
+});

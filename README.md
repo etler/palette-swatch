@@ -23,6 +23,7 @@ npm run dev
 - Hover near the top or bottom of a swatch to reveal its delete button. The last swatch is kept.
 - Hover in either left window corner for the outline mode button. Each click immediately cycles edge to edge, a thick outside border, and thinner outlines with equal-width outer edges and column gaps. The right corners have ink-drop buttons that toggle white/black, revealing the outside border from edge to edge. The ink fill follows the outline color. Each top corner has a Tab stop; the bottom controls are mouse-only duplicates.
 - Borders animate when changing color, expanding, and shrinking, taking up layout space inside the window; the swatches and their controls resize to fit. Reduced-motion settings skip the animation.
+- The outline mode and white/black preference are remembered in this browser using localStorage.
 - Drag a swatch over another to swap their positions. Double-click its color area to insert a new color to its right using the same blend/extrapolation rules as +.
 - The picker’s bottom-left control changes the mode for all swatches. A channel’s shades button expands that swatch into 25 choices; Escape cancels.
 - A drag commits on release. A color picker session, including shade exploration, is one undoable edit. Clicking outside the picker accepts its current color.

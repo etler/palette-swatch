@@ -23,7 +23,21 @@ function App() {
   const [drag, setDrag] = useState<Drag | null>(null);
   const [notice, setNotice] = useState('');
   const [keyboard, setKeyboard] = useState(false);
-  const [outline, setOutline] = useState<{ readonly mode: 'none' | 'outer' | 'swatches'; readonly color: 'white' | 'black' }>({ mode: 'none', color: 'white' });
+  const [outline, setOutline] = useState<{ readonly mode: 'none' | 'outer' | 'swatches'; readonly color: 'white' | 'black' }>(() => {
+    try {
+      const [mode, color] = (localStorage.getItem('palette:outline') ?? '').split(':');
+      return { mode: mode === 'outer' || mode === 'swatches' ? mode : 'none', color: color === 'black' ? 'black' : 'white' };
+    } catch {
+      return { mode: 'none', color: 'white' };
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('palette:outline', `${outline.mode}:${outline.color}`);
+    } catch {
+      // Outline controls still work when browser storage is blocked.
+    }
+  }, [outline]);
   const swatchSpace = useRef<Readonly<{ id: string; time: number }> | undefined>(undefined);
   const activateOutline = (primary: 'mode' | 'color' = 'mode') => setOutline(current => primary === 'color'
     ? { mode: current.mode === 'none' ? 'outer' : current.mode, color: current.color === 'white' ? 'black' : 'white' }
