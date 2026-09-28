@@ -7,8 +7,8 @@ test.beforeEach(async ({ page }) => {
   await page.goto(`/#${colors.join('#')}`);
 });
 
-test('wraps below 100px, fills spare cells, and returns to one row when widened', async ({ page }) => {
-  for (const [width, columns, empty] of [[500, 5, 0], [499, 4, 3], [390, 3, 1], [299, 2, 1], [199, 1, 0], [1440, 5, 0]]) {
+test('uses the minimum row count and balances columns when wrapping', async ({ page }) => {
+  for (const [width, columns, empty] of [[500, 5, 0], [499, 3, 1], [390, 3, 1], [299, 2, 1], [199, 1, 0], [1440, 5, 0]]) {
     await page.setViewportSize({ width, height: 844 });
     await expect(page.locator('.empty-swatch')).toHaveCount(empty);
     await expect.poll(() => page.locator('.swatch').evaluateAll(elements => elements.filter(element => element.getBoundingClientRect().top === elements[0].getBoundingClientRect().top).length)).toBe(columns);
@@ -23,7 +23,7 @@ test('empty cells follow outline color, append an extrapolated color, and suppor
   await expect(empty).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await page.keyboard.press('Control+Shift+Space');
   await expect(empty).toHaveCSS('background-color', 'rgb(0, 0, 0)');
-  const button = page.getByRole('button', { name: 'Add color in empty space 1' });
+  const button = page.getByRole('button', { name: 'Add color in empty space' });
   await expect(button).toHaveCSS('color', 'rgb(255, 255, 255)');
   const cellBounds = await empty.boundingBox();
   const buttonBounds = await button.boundingBox();
@@ -103,4 +103,59 @@ test('keyboard focus scrolls additional rows into view', async ({ page }) => {
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('region', { name: 'Color 1', exact: true })).toBeFocused();
   await expect(page.getByRole('region', { name: 'Color 1', exact: true })).toBeInViewport();
+});
+
+for (const { count, perRow, empty } of [
+  { count: 6, perRow: [3, 3], empty: 0 },
+  { count: 9, perRow: [3, 3, 3], empty: 0 },
+  { count: 10, perRow: [4, 4, 2], empty: 1 },
+  { count: 13, perRow: [4, 4, 4, 1], empty: 1 },
+]) {
+  test(`${count} colors use rows ${perRow.join('/')} with at most one empty cell`, async ({ page }) => {
+    await page.setViewportSize({ width: 480, height: 1000 });
+    await page.goto(`/#${Array.from({ length: count }, (_, index) => colors[index % colors.length]).join('#')}`);
+    await expect(page.locator('.empty-swatch')).toHaveCount(empty);
+    await expect.poll(() => page.locator('.swatch').evaluateAll(elements => {
+      const tops = elements.map(element => element.getBoundingClientRect().top);
+      return [...new Set(tops)].map(top => tops.filter(value => value === top).length);
+    })).toEqual(perRow);
+    const widths = await page.locator('.swatch').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().width));
+    for (const width of widths) expect(width).toBeGreaterThanOrEqual(100);
+    for (const width of widths) expect(width).toBeCloseTo(widths[0], 1);
+  });
+}
+
+test('the merged bottom-right cell spans the remaining slots and fills one color at a time', async ({ page }) => {
+  await page.setViewportSize({ width: 480, height: 900 });
+  await page.goto(`/#${[...colors, ...colors].join('#')}`);
+  await page.keyboard.press('Control+Space');
+  await page.keyboard.press('Control+Space');
+  await expect(page.getByRole('main')).toHaveCSS('column-gap', '8px');
+  const empty = page.locator('.empty-swatch');
+  const last = page.getByRole('region', { name: 'Color 10', exact: true });
+  await expect.poll(async () => {
+    const bounds = await empty.boundingBox();
+    const swatch = await last.boundingBox();
+    return bounds && swatch ? Math.round(bounds.width - swatch.width * 2) : null;
+  }).toBe(8);
+  const bounds = await empty.boundingBox();
+  const swatch = await last.boundingBox();
+  if (!bounds || !swatch) throw new Error('Expected the merged empty cell');
+  expect(bounds.y).toBeCloseTo(swatch.y, 1);
+  expect(bounds.x).toBeCloseTo(swatch.x + swatch.width + 8, 1);
+  expect(bounds.x + bounds.width).toBeCloseTo(472, 1);
+  const button = page.getByRole('button', { name: 'Add color in empty space' });
+  const buttonBounds = await button.boundingBox();
+  if (!buttonBounds) throw new Error('Expected the centered add button');
+  expect(buttonBounds.x + buttonBounds.width / 2).toBeCloseTo(bounds.x + bounds.width / 2, 1);
+  await button.click();
+  await expect(page.locator('.swatch')).toHaveCount(11);
+  await expect(empty).toHaveCount(1);
+  await button.click();
+  await expect(page.locator('.swatch')).toHaveCount(12);
+  await expect(empty).toHaveCount(0);
+  await page.keyboard.press('Control+z');
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('.swatch')).toHaveCount(10);
+  await expect(empty).toHaveCount(1);
 });

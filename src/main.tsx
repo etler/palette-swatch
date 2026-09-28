@@ -57,8 +57,8 @@ function App() {
     ? { mode: current.mode === 'none' ? 'outer' : current.mode, color: current.color === 'white' ? 'black' : 'white' }
     : { ...current, mode: current.mode === 'none' ? 'outer' : current.mode === 'outer' ? 'swatches' : 'none' });
   const palette = history.present;
-  const columns = Math.min(capacity, palette.length);
-  const rows = Math.ceil(palette.length / columns);
+  const rows = Math.ceil(palette.length / capacity);
+  const columns = Math.ceil(palette.length / rows);
   const target = drag ? Math.min(palette.length - 1,
     clamp(Math.round((drag.y - drag.startY) / drag.height) + Math.floor(drag.origin / columns), 0, rows - 1) * columns +
     clamp(Math.round((drag.x - drag.startX) / drag.width) + drag.origin % columns, 0, columns - 1)) : 0;
@@ -329,9 +329,9 @@ function App() {
           {addControl(index + 1)}
         </Fragment>;
       })}
-      {Array.from({ length: rows * columns - palette.length }, (_, index) => <div key={index} className="empty-swatch" style={{ color: outline.color === 'white' ? 'black' : 'white' }}>
-        {!drag && editor.kind === 'closed' && <button className="add-color" aria-label={`Add color in empty space ${index + 1}`} onClick={() => add(palette.length)}><Icon name="plus" /></button>}
-      </div>)}
+      {rows * columns > palette.length && <div className="empty-swatch" style={{ gridColumn: `span ${rows * columns - palette.length}`, color: outline.color === 'white' ? 'black' : 'white' }}>
+        {!drag && editor.kind === 'closed' && <button className="add-color" aria-label="Add color in empty space" onClick={() => add(palette.length)}><Icon name="plus" /></button>}
+      </div>}
       {!drag && editor.kind === 'closed' && ['top-left', 'top-right', 'bottom-left', 'bottom-right'].map(corner => {
         const action = corner.endsWith('right') ? 'color' : 'mode';
         return <div key={corner} className={`outline-zone outline-zone-${corner}`}>
