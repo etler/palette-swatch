@@ -256,7 +256,7 @@ for (const [platform, modifier, alt, enter, deletion, redo] of [
   });
 }
 
-for (const label of ['Settings', 'Accessibility', 'Bookmarks', 'Keyboard shortcuts']) {
+for (const label of ['Settings', 'Accessibility', 'Bookmarks', 'Export', 'Keyboard shortcuts']) {
   test(`sidebar remembers open and closed states and the ${label} tab`, async ({ page, context }) => {
     const menu = page.getByRole('button', { name: 'Menu', exact: true });
     await menu.click();

@@ -72,12 +72,29 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .settings-panel[data-open="true"] { flex-basis: min(340px, 50%); visibility: visible; transition-delay: 0s; }
 .sidebar-content { width: min(340px, 50vw); height: 100%; display: flex; flex-direction: column; border-left: 1px solid #d5d8cd; }
 .sidebar-header { display: flex; align-items: center; gap: 4px; padding: 8px; border-bottom: 1px solid #d5d8cd; }
-.sidebar-tabs { min-width: 0; display: flex; flex: 1; gap: 4px; }
-.sidebar-tabs button { min-width: 0; flex: 1; display: grid; place-items: center; padding: 10px 2px; border-radius: 7px; }
+.sidebar-tabs { min-width: 0; display: flex; flex: 1; flex-wrap: wrap; gap: 4px; }
+.sidebar-tabs button { min-width: 0; flex: 1 0 28px; display: grid; place-items: center; padding: 10px 2px; border-radius: 7px; }
 .sidebar-tabs button:hover { background: #0000000a; }
 .sidebar-tabs button[aria-selected="true"] { background: #e8ebe3; }
 .sidebar-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-.settings-form, .shortcut-list, .accessibility-panel, .bookmarks-panel { padding: 16px 20px; }
+.settings-form, .shortcut-list, .accessibility-panel, .bookmarks-panel, .export-panel { padding: 16px 20px; }
+.export-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr)); gap: 10px; }
+.export-buttons button { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px; border: 1px solid #d5d8cd; border-radius: 7px; font-size: 12px; text-align: left; }
+.export-buttons button:hover { background: #e8ebe3; }
+.export-buttons svg { width: 16px; height: 16px; }
+.export-error { font-size: 12px; }
+.palette-print { display: none; }
+@media print {
+  @page { margin: 12mm; }
+  :root { background: white; }
+  #root { display: none; }
+  .palette-print { display: block; color: black; font-family: sans-serif; }
+  .palette-print h1 { font-size: 18pt; margin: 0 0 8mm; }
+  .print-swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .print-swatch { min-height: 50mm; padding: 6mm 3mm; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 3mm; text-align: center; overflow-wrap: anywhere; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .print-swatch strong { font-size: 12pt; }
+  .print-swatch span { font-size: 9pt; max-width: 100%; }
+}
 .sidebar-body h2 { font-size: 14px; margin: 0 0 16px; }
 .shortcut-list h3 { font-size: 12px; margin: 24px 0 12px; }
 .shortcut-list dl { display: grid; gap: 14px; margin: 0; font-size: 12px; }

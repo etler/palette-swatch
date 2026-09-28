@@ -65,7 +65,10 @@ for (const width of [1440, 390, 320]) {
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', { name: 'Bookmarks', exact: true })).toBeFocused();
     await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Export', exact: true })).toBeFocused();
+    await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', { name: 'Keyboard shortcuts' })).toBeFocused();
+    await page.keyboard.press('ArrowLeft');
     await page.keyboard.press('ArrowLeft');
     await page.keyboard.press('ArrowLeft');
     await expect(tab).toBeFocused();

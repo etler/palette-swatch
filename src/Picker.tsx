@@ -1,8 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { atFraction, channels, clamp, coordinates, fraction, modes, parseHex, replace, toHex, type Mode } from './color';
 
-export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' | 'eye' | 'bookmark' }) {
+export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' | 'eye' | 'bookmark' | 'download' | 'export' | 'print' }) {
   const paths = {
+    print: <><path d="M6 9V3h12v6M6 17H3v-8h18v8h-3M17 12h1" /><rect x="6" y="14" width="12" height="7" rx="1" /></>,
+    export: <path d="M12 15V3m-5 5 5-5 5 5M4 16v5h16v-5" />,
+    download: <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" />,
     bookmark: <path d="M6 3h12v18l-6-4-6 4V3Z" />,
     eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
     menu: <path d="M4 6h16M4 12h16M4 18h16" />,

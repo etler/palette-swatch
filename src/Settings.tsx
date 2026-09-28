@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from './Picker';
 import { Accessibility } from './Accessibility';
 import { Bookmarks } from './Bookmarks';
+import { Exports } from './Exports';
 import type { VisionMode } from './color';
 import type { Palette } from './palette';
 
@@ -9,6 +10,7 @@ const tabs = [
   { id: 'settings', label: 'Settings', icon: 'settings' },
   { id: 'accessibility', label: 'Accessibility', icon: 'eye' },
   { id: 'bookmarks', label: 'Bookmarks', icon: 'bookmark' },
+  { id: 'export', label: 'Export', icon: 'export' },
   { id: 'keyboard', label: 'Keyboard shortcuts', icon: 'keyboard' },
 ] as const;
 
@@ -179,6 +181,9 @@ export function SettingsPanel({ open, settings, onSave, onClose, palette, vision
         </section>
         <section id="accessibility-content" role="tabpanel" aria-labelledby="accessibility-tab" hidden={tab !== 'accessibility'} className="accessibility-panel">
           <Accessibility palette={palette} vision={vision} onVision={onVision} />
+        </section>
+        <section id="export-content" role="tabpanel" aria-labelledby="export-tab" hidden={tab !== 'export'} className="export-panel">
+          <Exports palette={palette} />
         </section>
         <section id="keyboard-content" role="tabpanel" aria-labelledby="keyboard-tab" hidden={tab !== 'keyboard'} tabIndex={0} className="shortcut-list">
           <h2>Keyboard shortcuts</h2>
