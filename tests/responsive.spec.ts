@@ -81,11 +81,12 @@ test('insertion margins and title controls remain usable in 160px rows', async (
   await expect(page.getByRole('main')).toHaveCSS('border-top-width', '32px');
   await expect(page.locator('.swatch').first()).toHaveCSS('height', '160px');
   const clearances = await page.locator('.swatch').first().evaluate(element => {
-    const [label, top, bottom] = ['.swatch-label', '.delete-zone-top', '.delete-zone-bottom'].map(selector => element.querySelector(selector)?.getBoundingClientRect());
-    if (!label || !top || !bottom) throw new Error('Expected swatch label and hover zones');
-    return [label.top - top.bottom, bottom.top - label.bottom];
+    const [hex, name, top, bottom] = ['.hex-button', '.name-button', '.delete-zone-top', '.delete-zone-bottom'].map(selector => element.querySelector(selector)?.getBoundingClientRect());
+    if (!hex || !name || !top || !bottom) throw new Error('Expected swatch titles and hover zones');
+    return [hex.top - top.bottom, bottom.top - name.bottom];
   });
   for (const clearance of clearances) expect(clearance).toBeGreaterThanOrEqual(0);
+  expect(clearances[0]).toBeCloseTo(clearances[1], 1);
   const margin = page.getByRole('button', { name: 'Add color at position 5', exact: true });
   await margin.click();
   await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'EE8959', 'E76F51']);
@@ -167,4 +168,19 @@ test('the merged bottom-right cell spans the remaining slots and fills one color
   await page.keyboard.press('Control+z');
   await expect(page.locator('.swatch')).toHaveCount(10);
   await expect(empty).toHaveCount(1);
+});
+
+
+test('titles move below center as rows grow, while staying clear of delete controls', async ({ page }) => {
+  for (const height of [400, 640, 1000]) {
+    await page.setViewportSize({ width: 390, height });
+    const padding = await page.locator('.swatch').first().evaluate(element => {
+      const [hex, name, bottom] = ['.hex-button', '.name-button', '.delete-zone-bottom'].map(selector => element.querySelector(selector)?.getBoundingClientRect());
+      if (!hex || !name || !bottom) throw new Error('Expected swatch titles and hover zone');
+      const bounds = element.getBoundingClientRect();
+      return { above: hex.top - bounds.top, below: bounds.bottom - name.bottom, clearance: bottom.top - name.bottom };
+    });
+    expect(padding.above).toBeGreaterThan(padding.below);
+    expect(padding.clearance).toBeGreaterThanOrEqual(0);
+  }
 });
