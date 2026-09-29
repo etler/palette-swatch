@@ -148,6 +148,9 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
   .outline-zone-top-right { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); }
   .outline-zone-bottom-left { bottom: max(8px, env(safe-area-inset-bottom)); left: max(8px, env(safe-area-inset-left)); }
   .outline-zone-bottom-right { bottom: max(8px, env(safe-area-inset-bottom)); right: max(8px, env(safe-area-inset-right)); }
+  :root:fullscreen :is(.outline-zone-bottom-left, .outline-zone-bottom-right, .mobile-swatch-actions) {
+    bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 8px));
+  }
   html, body, .palette, .popup, .sidebar-body, .swatch-info { overscroll-behavior: none; }
   .add-color, .add-hover-start, .add-hover-end, .delete-zone { display: none; }
   .app-layout[data-touch-controls="false"] .outline-button { opacity: 0; transform: scale(.7); pointer-events: none; }
