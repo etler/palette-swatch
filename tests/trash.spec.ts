@@ -92,25 +92,27 @@ test('mouse dragging across the top center reorders without showing trash or del
   await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E76F51', 'E9C46A', 'F4A261']);
 });
 
-test('touch can still scroll color information independently', async ({ browser }) => {
-  const context = await browser.newContext({ viewport: { width: 390, height: 500 }, hasTouch: true, isMobile: true });
-  await context.addInitScript(() => localStorage.setItem('palette:info', 'true'));
-  const page = await context.newPage();
-  await page.goto('/#264653#2A9D8F#E9C46A#F4A261#E76F51');
-  const info = page.locator('.swatch-info').first();
-  const bounds = await info.boundingBox();
-  if (!bounds) throw new Error('Missing color information');
-  const session = await context.newCDPSession(page);
-  const x = bounds.x + bounds.width / 2;
-  const y = bounds.y + bounds.height - 8;
-  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
-  for (const distance of [10, 20, 35, 50]) {
-    await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - distance }] });
-  }
-  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-  await expect.poll(() => info.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
-  await expect(page.locator('.dragged')).toHaveCount(0);
-  await expect(page.getByRole('img', { name: 'Delete swatch' })).toHaveCount(0);
-  await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51']);
-  await context.close();
-});
+for (const fraction of [0.05, 0.5, 0.95]) {
+  test(`touch scrolls color information at ${fraction * 100}% width without dragging the swatch`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 500 }, hasTouch: true, isMobile: true });
+    await context.addInitScript(() => localStorage.setItem('palette:info', 'true'));
+    const page = await context.newPage();
+    await page.goto('/#264653#2A9D8F#E9C46A#F4A261#E76F51');
+    const info = page.locator('.swatch-info').first();
+    const bounds = await info.boundingBox();
+    if (!bounds) throw new Error('Missing color information');
+    const session = await context.newCDPSession(page);
+    const x = bounds.x + bounds.width * fraction;
+    const y = bounds.y + bounds.height - 8;
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (const distance of [10, 20, 35, 50]) {
+      await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - distance }] });
+      await expect(page.locator('.dragged')).toHaveCount(0);
+    }
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect.poll(() => info.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+    await expect(page.getByRole('img', { name: 'Delete swatch' })).toHaveCount(0);
+    await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51']);
+    await context.close();
+  });
+}

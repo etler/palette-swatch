@@ -142,7 +142,7 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 }
 @media (hover: none) {
   html, body, .palette, .popup, .sidebar-body, .swatch-info { overscroll-behavior: none; }
-  .add-color, .delete-zone { display: none; }
+  .add-color, .add-hover-start, .add-hover-end, .delete-zone { display: none; }
   .app-layout[data-touch-controls="false"] .outline-button { opacity: 0; transform: scale(.7); pointer-events: none; }
   .app-layout[data-touch-controls="true"] .mobile-swatch-actions { display: flex; }
   .app-layout[data-touch-controls="true"] .outline-button { opacity: 1; transform: scale(1); pointer-events: auto; }
