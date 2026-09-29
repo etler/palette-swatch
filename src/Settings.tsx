@@ -46,7 +46,7 @@ const shortcuts = [
     ['Move selected swatch', `${keyLabels.modifier} / ${keyLabels.alt} + ← / →`],
     ['Delete selected swatch', keyLabels.delete],
     ['Add swatch to the right', 'Shift + = (+)'],
-    ['Edit focused color', keyLabels.enter],
+    ['Edit focused color', `Space / ${keyLabels.enter}`],
     ['Open focused hex or name', `Space / ${keyLabels.enter}`],
     ['Copy selected hex', `${keyLabels.modifier} + C`],
     ['Paste color to the right', `${keyLabels.modifier} + V`],

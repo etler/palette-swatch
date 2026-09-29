@@ -137,13 +137,10 @@ for (const key of ['Enter', 'Space']) {
     await expect(swatch).toHaveCSS('outline-style', 'solid');
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await page.keyboard.press(key);
-    if (key === 'Space') {
-      await expect(page.locator('.swatch')).toHaveCount(5);
-      await expect(page.getByRole('dialog')).toHaveCount(0);
-    } else {
-      await expect(page.getByRole('dialog', { name: 'Color picker' })).toBeVisible();
-      await page.keyboard.press('Escape');
-    }
+    await expect(page.locator('.swatch')).toHaveCount(5);
+    await expect(page.getByRole('dialog', { name: 'Color picker' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Hex color' })).toBeFocused();
+    await page.keyboard.press('Escape');
 
     const name = page.getByRole('button', { name: 'Add name for Color 3' });
     await name.click();
@@ -534,11 +531,12 @@ for (const focused of [false, true]) {
   });
 }
 
-test('double Space only focuses and holding Shift+= adds just once', async ({ page }) => {
+test('holding Space only focuses and holding Shift+= adds just once', async ({ page }) => {
   const swatch = page.getByRole('region', { name: 'Color 2', exact: true });
   await swatch.click({ position: { x: 100, y: 200 } });
-  await page.keyboard.press('Space');
-  await page.keyboard.press('Space');
+  await page.keyboard.down('Space');
+  await page.keyboard.down('Space');
+  await page.keyboard.up('Space');
   await expect(swatch).toBeFocused();
   await expect(page.locator('.swatch')).toHaveCount(5);
   await expect(page.getByRole('dialog')).toHaveCount(0);

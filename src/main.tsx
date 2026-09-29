@@ -316,16 +316,9 @@ function App() {
         setKeyboard(true);
         return;
       }
-      if (event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey && (active === swatch || active === document.body)) {
+      if ((!keyboard || active === document.body) && !event.ctrlKey && !event.metaKey && !event.altKey && ['Enter', ' '].includes(event.key) && (index >= 0 || active === document.body)) {
         event.preventDefault();
         if (event.repeat) return;
-        const selected = palette[Math.max(0, index)];
-        setKeyboard(true);
-        focusSwatch(selected.id);
-        return;
-      }
-      if (!keyboard && !event.ctrlKey && !event.metaKey && !event.altKey && ['Enter', ' '].includes(event.key) && (index >= 0 || active === document.body)) {
-        event.preventDefault();
         setKeyboard(true);
         focusSwatch(palette[Math.max(0, index)].id, active instanceof HTMLElement ? active.dataset.target : undefined);
         return;
@@ -369,8 +362,9 @@ function App() {
         setKeyboard(true);
         focusSwatch(palette[index].id);
         remove(palette[index].id);
-      } else if (keyboard && active === swatch && event.key === 'Enter') {
-        event.preventDefault(); swatch?.querySelector<HTMLButtonElement>('.hex-button')?.click();
+      } else if (keyboard && active === swatch && !event.ctrlKey && !event.metaKey && !event.altKey && ['Enter', ' '].includes(event.key)) {
+        event.preventDefault();
+        if (!event.repeat) swatch?.querySelector<HTMLButtonElement>('.hex-button')?.click();
       }
     };
     const onPointer = () => setKeyboard(false);

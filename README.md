@@ -64,7 +64,7 @@ Contrast follows [WCAG 2.2 relative luminance](https://www.w3.org/TR/WCAG22/#dfn
 | Palette without an outline | Enter / Space | Outline the mouse-selected swatch or title without activating it |
 | Palette with an outline | Left / Right | Target the neighboring swatch, wrapping at either end and retaining the same title or swatch target |
 | Selected or focused swatch | Shift + = (+) | Insert a color to its right |
-| Focused swatch | Enter | Open its color picker |
+| Focused swatch | Space / Enter | Open its color picker |
 | Focused hex or name | Space / Enter | Open its popup |
 | Palette with an outline | Up / Down | Down cycles swatch → hex → name → swatch; Up reverses the loop |
 | Selected or focused swatch | Ctrl/Cmd/Alt + Left / Right | Swap with the neighboring swatch |
