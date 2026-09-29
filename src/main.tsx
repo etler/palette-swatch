@@ -1,4 +1,4 @@
-import { Fragment, StrictMode, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, StrictMode, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { createRoot } from 'react-dom/client';
 import { clamp, colorInfo, coordinates, ink, parseHex, shades, simulateVision, toHex, type Mode, type VisionMode } from './color';
 import { historyReducer, insertionColor, move, parse, persist, type Palette, type Swatch } from './palette';
@@ -25,6 +25,11 @@ function measureTitles(element: HTMLDivElement | null) {
   observer.observe(element);
   return () => observer.disconnect();
 }
+
+const subscribeToFullscreen = (notify: () => void) => {
+  document.addEventListener('fullscreenchange', notify);
+  return () => document.removeEventListener('fullscreenchange', notify);
+};
 
 const doubleTapWindow = 350;
 const touchDragThreshold = 10;
@@ -94,6 +99,15 @@ function App() {
     return () => clearTimeout(timeout);
   }, [drag?.phase, drag?.startedAt]);
   const [notice, setNotice] = useState('');
+  const fullscreen = useSyncExternalStore(subscribeToFullscreen, () => Boolean(document.fullscreenElement));
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+    } catch {
+      setNotice('Fullscreen unavailable.');
+    }
+  };
   const touchControls = useTouchControls();
   const touchButton = useRef<HTMLButtonElement | null>(null);
   const touchActivation = useRef<HTMLButtonElement | null>(null);
@@ -271,8 +285,7 @@ function App() {
       if (event.altKey && event.key === 'Enter') {
         event.preventDefault();
         event.stopPropagation();
-        const request = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
-        request.catch(() => setNotice('Fullscreen unavailable.'));
+        if (!event.repeat) void toggleFullscreen();
         return;
       }
       if (event.key === 'Escape' && document.fullscreenElement) void document.exitFullscreen();
@@ -603,6 +616,11 @@ function App() {
         </div>;
       })}
     </main>
+    {!dragging && editor.kind === 'closed' && <div className="outline-zone mobile-fullscreen">
+      <button type="button" className="outline-button" aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} aria-keyshortcuts="Alt+Enter" onClick={toggleFullscreen}>
+        <Icon name={fullscreen ? 'exit-fullscreen' : 'fullscreen'} />
+      </button>
+    </div>}
     {!dragging && editor.kind === 'closed' && <div className="mobile-swatch-actions" role="group" aria-label="Palette actions">
       <button type="button" aria-label="Undo" disabled={!history.past.length} onClick={() => mobileAction('undo')}><Icon name="undo" /></button>
       <button type="button" aria-label="Add swatch" onClick={() => mobileAction('add')}><Icon name="plus" /></button>

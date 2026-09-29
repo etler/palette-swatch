@@ -133,6 +133,7 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .bookmark-grid .bookmark-remove { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; }
 .bookmark-remove svg { width: 14px; height: 14px; }
 .bookmark-grid li:hover .bookmark-remove { opacity: 1; transform: scale(1); }
+.mobile-fullscreen { display: none; top: max(8px, env(safe-area-inset-top)); left: 50%; translate: -50% 0; pointer-events: none; }
 .mobile-swatch-actions { display: none; position: fixed; z-index: 6; bottom: max(8px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); align-items: center; justify-content: center; gap: 8px; }
 .mobile-swatch-actions button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 50%; color: #171917; background: white; box-shadow: 0 3px 15px #0002; }
 .mobile-swatch-actions button:disabled { opacity: .35; cursor: default; }
@@ -141,6 +142,7 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
   .add-color:focus, .delete-color:focus { opacity: 1; transform: scale(1); }
 }
 @media (hover: none) {
+  .mobile-fullscreen { display: grid; }
   .outline-zone { width: 36px; height: 36px; }
   .outline-zone-top-left { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); }
   .outline-zone-top-right { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); }
@@ -213,7 +215,7 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .shade-back:hover { background: #eee; }
 .toast { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 10px); max-width: calc(100vw - 32px); width: max-content; background: #fff; color: #171917; border-radius: 12px; padding: 12px 18px; box-shadow: 0 4px 24px #0002; font-size: 12px; opacity: 0; pointer-events: none; transition: opacity 180ms, transform 180ms; z-index: 8; }
 .toast.visible { opacity: 1; transform: translate(-50%, 0); }
-@media (max-width: 600px), (hover: none) { .popup { --popup-bottom: 16px; } }
+@media (max-width: 600px), (hover: none) { .popup { --popup-bottom: max(16px, env(safe-area-inset-bottom)); } }
 @media (max-width: 600px) { .hex-button { padding: 7px 4px; letter-spacing: -.025em; } .name-button { padding: 5px 2px; } .palette { --add-width: 30px; } .add-color, .delete-color { width: 27px; height: 27px; } }
 @media (prefers-reduced-motion: reduce) { .settings-panel { transition: none; } .swatch { --swap-duration: 0; } *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 @media (max-width: 600px) { .palette { --swatch-border: 8px; } }

@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { atFraction, channels, clamp, coordinates, fraction, modes, parseHex, replace, toHex, type Mode } from './color';
 
-export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' | 'eye' | 'bookmark' | 'download' | 'export' | 'print' | 'undo' | 'redo' | 'trash' }) {
+export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' | 'eye' | 'bookmark' | 'download' | 'export' | 'print' | 'undo' | 'redo' | 'trash' | 'fullscreen' | 'exit-fullscreen' }) {
   const paths = {
+    fullscreen: <path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5" />,
+    'exit-fullscreen': <path d="M3 8h5V3M21 8h-5V3M8 21v-5H3M16 21v-5h5" />,
     trash: <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />,
     undo: <path d="m9 14-5-5 5-5M4 9h10a6 6 0 0 1 0 12" />,
     redo: <path d="m15 14 5-5-5-5M20 9H10a6 6 0 0 0 0 12" />,
