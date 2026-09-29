@@ -63,6 +63,7 @@ for (const [index, hex] of [[1, '2A9D8F'], [4, 'E76F51']] as const) {
     await page.touchscreen.tap(x, y);
     await expect(page.getByRole('dialog', { name: 'Color picker' })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Hex color' })).toHaveValue(hex);
+    await expect(page.getByRole('dialog').locator('input:focus')).toHaveCount(0);
     await expect(page.locator('.swatch')).toHaveCount(5);
   });
 }
@@ -118,13 +119,14 @@ test('mobile actions append regardless of selection and expose undo and redo ava
 });
 
 for (const [selector, popup] of [['.hex-button', 'Color picker'], ['.name-button', 'Color picker']]) {
-  test(`tapping ${selector} opens its editor and selects the input`, async ({ page }) => {
+  test(`tapping ${selector} opens its editor without focusing an input until tapped`, async ({ page }) => {
     await page.locator('.swatch').nth(1).locator(selector).tap();
     const dialog = page.getByRole('dialog', { name: popup });
     await expect(dialog).toBeVisible();
     const input = dialog.getByRole('textbox', { name: selector === '.hex-button' ? 'Hex color' : 'Color Name' });
+    await expect(dialog.locator('input:focus')).toHaveCount(0);
+    await input.tap();
     await expect(input).toBeFocused();
-    expect(await input.evaluate((element: HTMLInputElement) => element.selectionStart === 0 && element.selectionEnd === element.value.length)).toBe(true);
     await expect(page.locator('.swatch')).toHaveCount(5);
     await expect(page.locator('.dragged')).toHaveCount(0);
   });

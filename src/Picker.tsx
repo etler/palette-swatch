@@ -32,6 +32,7 @@ export function Popup({ x, onClose, onCancel, children, label }: { readonly x: n
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     ref.current?.showPopover();
+    if (matchMedia('(hover: none)').matches) return;
     const input = ref.current?.querySelector<HTMLInputElement>('input[data-autofocus]');
     input?.focus();
     input?.select();
@@ -121,6 +122,7 @@ export function Picker({ name, initialFocus, onName, mode, values, original, onC
   const previous = coordinates(original, mode);
   useLayoutEffect(() => {
     if (!form.current) return;
+    if (view.focus === 'default' && matchMedia('(hover: none)').matches) return;
     const controls = pickerControls(form.current);
     const input = view.focus === 'default' && initialFocus === 'name'
       ? form.current.querySelector<HTMLInputElement>('input[name="name"]')
@@ -231,7 +233,7 @@ export function Picker({ name, initialFocus, onName, mode, values, original, onC
       </div>)}</div>
     </div>
     <div className="picker-footer"><button type="button" className="mode-trigger" onClick={() => setView({ screen: 'modes', focus: 'default' })} aria-label="Change color mode">{mode}<Icon name="chevron" /></button>
-      <div className="footer-actions"><button type="button" className="icon-button" aria-label="Pick a color from your screen" onClick={eyeDropper}><Icon name="dropper" /></button>
+      <div className="footer-actions">{window.EyeDropper && <button type="button" className="icon-button" aria-label="Pick a color from your screen" onClick={eyeDropper}><Icon name="dropper" /></button>}
         <button type="button" className="icon-button" aria-label="Copy hex code" onClick={async () => { try { await navigator.clipboard.writeText(hex); notify(`Copied ${hex}`); } catch { notify('Copy unavailable. Select the HEX field and copy it.'); } }}><Icon name="copy" /></button>
         <button type="button" className="icon-button bookmark-toggle" aria-label="Bookmark swatch" aria-pressed={bookmarked} title={bookmarked ? 'Remove bookmark' : 'Save bookmark'} onClick={() => onBookmark(hex)}><Icon name="bookmark" /></button></div>
     </div>
