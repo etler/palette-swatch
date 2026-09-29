@@ -31,7 +31,7 @@ Swatches use the fewest rows needed to stay at least 100px wide, with the column
 - Borders animate when changing color, expanding, and shrinking, taking up layout space inside the window; the swatches and their controls resize to fit. Reduced-motion settings skip the animation.
 - The outline mode and white/black preference are remembered in this browser using localStorage.
 - Drag a swatch to insert it at a new position, shifting the intervening swatches one slot. Wrapped rows use the same left-to-right palette order. Mouse dragging keeps the entire swatch inside the visible palette area, including outline insets and scroll position. Once dragging starts, the swatch follows the finger without constraining the swatch to those bounds. Double-click its color area to open its color picker.
-- When the palette overflows on touchscreens, tap a swatch's color area, then press it again within 350ms and drag to scroll the palette. Releasing a quick double-tap without dragging still opens the picker.
+- On touchscreens, drag with two fingers to scroll an overflowing palette. Adding a second finger cancels swatch dragging; lift both fingers before moving another swatch.
 - The picker’s bottom-left control changes the mode for all swatches. A channel’s shades button expands that swatch into 25 choices; Escape cancels.
 - While dragging on a touchscreen, a red trash target appears at the top center above the swatches. Release over it to delete the dragged swatch; the last swatch is kept. Deletion is a single undoable action.
 - A drag commits on release. A color picker session, including shade exploration, is one undoable edit. The checkmark or clicking outside the picker accepts its current color; X or Escape reverts it.
