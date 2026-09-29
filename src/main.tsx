@@ -10,7 +10,7 @@ import './style.css';
 type Editor = Readonly<{ kind: 'closed' }>
   | (Readonly<{ swatch: Swatch; name: string; focus: 'hex' | 'name'; values: readonly number[] }> &
     (Readonly<{ kind: 'color'; x: number }> | Readonly<{ kind: 'shades'; channel: number }>));
-type Drag = Readonly<{ phase: 'pending' | 'dragging'; id: string; startX: number; startY: number; x: number; y: number; width: number; height: number; origin: number; startedAt: number; travel: number; overTrash: boolean; pointerType: string }>;
+type Drag = Readonly<{ phase: 'pending' | 'dragging' | 'scrolling'; id: string; startX: number; startY: number; x: number; y: number; width: number; height: number; origin: number; startedAt: number; travel: number; overTrash: boolean; pointerType: string }>;
 const paint = (hex: string): CSSProperties => ({ '--color': `#${hex}`, '--ink': ink(hex) } as CSSProperties);
 function focusSwatch(id: string, part = 'swatch') {
   const swatch = document.getElementById(`swatch-${id}`);
@@ -37,7 +37,7 @@ const touchDragThreshold = 10;
 function useTouchControls() {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
-    let touch: Readonly<{ id: number; x: number; y: number; time: number; travel: number }> | undefined;
+    let touch: Readonly<{ id: number; x: number; y: number; time: number; travel: number; doubleTap: boolean }> | undefined;
     let pending: Readonly<{ x: number; y: number; time: number; timer: ReturnType<typeof setTimeout> }> | undefined;
     const down = (event: PointerEvent) => {
       touch = undefined;
@@ -47,7 +47,12 @@ function useTouchControls() {
         pending = undefined;
         return;
       }
-      touch = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp, travel: 0 };
+      const doubleTap = !!pending && event.timeStamp - pending.time <= doubleTapWindow && Math.hypot(event.clientX - pending.x, event.clientY - pending.y) < 24;
+      if (doubleTap) {
+        clearTimeout(pending?.timer);
+        pending = undefined;
+      }
+      touch = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp, travel: 0, doubleTap };
     };
     const move = (event: PointerEvent) => {
       if (touch?.id === event.pointerId) touch = { ...touch, travel: Math.max(touch.travel, Math.hypot(event.clientX - touch.x, event.clientY - touch.y)) };
@@ -55,12 +60,7 @@ function useTouchControls() {
     const up = (event: PointerEvent) => {
       const gesture = touch;
       touch = undefined;
-      if (!gesture || gesture.id !== event.pointerId || gesture.travel >= touchDragThreshold || event.timeStamp - gesture.time >= doubleTapWindow) return;
-      if (pending && event.timeStamp - pending.time <= doubleTapWindow && Math.hypot(event.clientX - pending.x, event.clientY - pending.y) < 24) {
-        clearTimeout(pending.timer);
-        pending = undefined;
-        return;
-      }
+      if (!gesture || gesture.id !== event.pointerId || gesture.doubleTap || gesture.travel >= touchDragThreshold || event.timeStamp - gesture.time >= doubleTapWindow) return;
       if (pending) {
         clearTimeout(pending.timer);
         setVisible(current => !current);
@@ -485,11 +485,21 @@ function App() {
         // Keep the pointer geometry steady while starting a drag.
         event.currentTarget.querySelectorAll<HTMLElement>('.swatch')[origin].focus({ preventScroll: true });
         event.currentTarget.setPointerCapture(event.pointerId);
-        setDrag({ phase: event.pointerType === 'touch' ? 'pending' : 'dragging', id: palette[origin].id, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, width, height, origin, startedAt: event.timeStamp, travel: 0, overTrash: false, pointerType: event.pointerType });
+        const previous = lastTouchTap.current;
+        const scroll = event.pointerType === 'touch' && event.currentTarget.scrollHeight > event.currentTarget.clientHeight
+          && previous?.id === palette[origin].id && event.timeStamp - previous.time <= doubleTapWindow
+          && Math.hypot(event.clientX - previous.x, event.clientY - previous.y) < 24;
+        setDrag({ phase: scroll ? 'scrolling' : event.pointerType === 'touch' ? 'pending' : 'dragging', id: palette[origin].id, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, width, height, origin, startedAt: event.timeStamp, travel: 0, overTrash: false, pointerType: event.pointerType });
       }}
       onPointerMove={event => {
         if (!drag) return;
         const element = event.currentTarget;
+        const travel = Math.max(drag.travel, Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY));
+        if (drag.phase === 'scrolling') {
+          if (travel >= touchDragThreshold) element.scrollTop += drag.y - event.clientY;
+          setDrag({ ...drag, x: event.clientX, y: event.clientY, travel });
+          return;
+        }
         const bounds = element.getBoundingClientRect();
         const gap = parseFloat(getComputedStyle(element).columnGap);
         const left = bounds.left + element.clientLeft;
@@ -500,7 +510,6 @@ function App() {
         const visibleHeight = Math.min(window.innerHeight, top + element.clientHeight) - visibleTop;
         const minX = drag.startX - (drag.origin % columns) * drag.width + visibleLeft - left;
         const minY = drag.startY - Math.floor(drag.origin / columns) * drag.height + element.scrollTop + visibleTop - top;
-        const travel = Math.max(drag.travel, Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY));
         setDrag({ ...drag,
           phase: travel >= touchDragThreshold ? 'dragging' : drag.phase,
           overTrash: overTrash(event.clientX, event.clientY),

@@ -84,6 +84,41 @@ test('taps on different swatches and dragging back to the start do not open the 
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
+for (const finish of ['touchEnd', 'touchCancel'] as const) {
+  test(`double press and drag scrolls overflowing swatches without editing them (${finish})`, async ({ page, context }) => {
+    await page.setViewportSize({ width: 390, height: 360 });
+    const colors = Array.from({ length: 30 }, (_, index) => (0x264653 + index * 1000).toString(16).toUpperCase());
+    await page.goto(`/#${colors.join('#')}`);
+    const palette = page.getByRole('main');
+    const originalURL = page.url();
+    expect(await palette.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+    const session = await context.newCDPSession(page);
+    await page.touchscreen.tap(65, 278);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 65, y: 278 }] });
+    if (finish === 'touchCancel') await page.waitForTimeout(450);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 65, y: 120 }] });
+    await expect.poll(() => palette.evaluate(el => el.scrollTop)).toBeGreaterThan(100);
+    await expect(page.locator('.dragged')).toHaveCount(0);
+    await expect(page.getByRole('img', { name: 'Delete swatch' })).toHaveCount(0);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 65, y: 310 }] });
+    await expect.poll(() => palette.evaluate(el => el.scrollTop)).toBe(0);
+    await session.send('Input.dispatchTouchEvent', { type: finish, touchPoints: [] });
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator('.hex-button')).toHaveText(colors);
+    expect(page.url()).toBe(originalURL);
+    await expect(page.getByRole('button', { name: 'Menu', exact: true })).toHaveCSS('opacity', '0');
+
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 65, y: 278 }] });
+    await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 65, y: 180 }] });
+    await expect(page.locator('.dragged')).toHaveCount(1);
+    await session.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+
+    await page.touchscreen.tap(65, 278);
+    await page.touchscreen.tap(65, 278);
+    await expect(page.getByRole('dialog', { name: 'Color picker' })).toBeVisible();
+  });
+}
+
 test('mobile actions append regardless of selection and expose undo and redo availability', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Add swatch', exact: true })).toHaveCount(0);
   await page.locator('.swatch').nth(1).tap({ position: { x: 40, y: 100 } });
