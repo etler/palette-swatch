@@ -141,6 +141,11 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
   .add-color:focus, .delete-color:focus { opacity: 1; transform: scale(1); }
 }
 @media (hover: none) {
+  .outline-zone { width: 36px; height: 36px; }
+  .outline-zone-top-left { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); }
+  .outline-zone-top-right { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); }
+  .outline-zone-bottom-left { bottom: max(8px, env(safe-area-inset-bottom)); left: max(8px, env(safe-area-inset-left)); }
+  .outline-zone-bottom-right { bottom: max(8px, env(safe-area-inset-bottom)); right: max(8px, env(safe-area-inset-right)); }
   html, body, .palette, .popup, .sidebar-body, .swatch-info { overscroll-behavior: none; }
   .add-color, .add-hover-start, .add-hover-end, .delete-zone { display: none; }
   .app-layout[data-touch-controls="false"] .outline-button { opacity: 0; transform: scale(.7); pointer-events: none; }
@@ -211,4 +216,5 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 @media (max-width: 600px), (hover: none) { .popup { --popup-bottom: 16px; } }
 @media (max-width: 600px) { .hex-button { padding: 7px 4px; letter-spacing: -.025em; } .name-button { padding: 5px 2px; } .palette { --add-width: 30px; } .add-color, .delete-color { width: 27px; height: 27px; } }
 @media (prefers-reduced-motion: reduce) { .settings-panel { transition: none; } .swatch { --swap-duration: 0; } *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
-@media (max-width: 600px) { .palette { --swatch-border: 8px; } .outline-zone { width: 32px; height: 32px; } .outline-button { width: 24px; height: 24px; } .outline-button svg { width: 16px; height: 16px; } }
+@media (max-width: 600px) { .palette { --swatch-border: 8px; } }
+@media (max-width: 600px) and (hover: hover) { .outline-zone { width: 32px; height: 32px; } .outline-button { width: 24px; height: 24px; } .outline-button svg { width: 16px; height: 16px; } }
