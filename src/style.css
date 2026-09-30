@@ -1,6 +1,6 @@
 @property --drag-scale { syntax: "<number>"; inherits: false; initial-value: 1; }
 @property --swatch-gap { syntax: "<length>"; inherits: true; initial-value: 0px; }
-:root { font-family: 'Avenir Next', 'Segoe UI', sans-serif; color: #171917; background: #e9e5dc; font-synthesis: none; }
+:root { font-family: 'Avenir Next', 'Segoe UI', sans-serif; color: #171917; background: #e9e5dc; font-synthesis: none; touch-action: pan-x pan-y; }
 * { box-sizing: border-box; }
 body { margin: 0; }
 button, input { font: inherit; }
