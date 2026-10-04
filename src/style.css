@@ -165,6 +165,7 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .settings-field { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 13px; }
 .settings-value { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .settings-value input { width: 76px; padding: 8px; border: 1px solid #d5d8cd; border-radius: 7px; background: white; color: inherit; }
+.settings-value input[type="color"] { height: 36px; padding: 4px; cursor: pointer; }
 .settings-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; font-size: 12px; }
 .settings-actions > button { flex: 1; min-width: 0; border-radius: 8px; padding: 11px 13px; }
 .settings-actions > button:hover { background: #0000000a; }

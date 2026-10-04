@@ -226,6 +226,8 @@ function App() {
       // Outline controls still work when browser storage is blocked.
     }
   }, [outline]);
+  // Keep the saved white/black slot identifiers compatible with existing preferences.
+  const outlineColor = settings[outline.color === 'white' ? 'outlineColor1' : 'outlineColor2'];
   const activateOutline = (primary: 'mode' | 'color' = 'mode') => setOutline(current => primary === 'color'
     ? { mode: current.mode === 'none' ? 'outer' : current.mode, color: current.color === 'white' ? 'black' : 'white' }
     : { ...current, mode: current.mode === 'none' ? 'outer' : current.mode === 'outer' ? 'swatches' : 'none' });
@@ -461,7 +463,7 @@ function App() {
     <h1 className="sr-only">Palette explorer</h1>
     <div className="app-layout" data-touch-controls={touchControls}>
     <div className="palette-workspace">
-    <main ref={paletteElement} className={`palette ${showInfo ? 'has-info' : ''} ${dragging ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter Shift+=" style={{ '--columns': columns, '--rows': rows, '--outline-color': outline.color, '--outer-border': settings.windowOutlineWidth === undefined ? undefined : `${settings.windowOutlineWidth}px`, '--swatch-border': settings.borderOutlineWidth === undefined ? undefined : `${settings.borderOutlineWidth}px` } as CSSProperties}
+    <main ref={paletteElement} className={`palette ${showInfo ? 'has-info' : ''} ${dragging ? 'is-dragging' : ''} ${keyboard && editor.kind === 'closed' ? 'keyboard-navigation' : ''}`} data-outline={outline.mode} aria-label="Color palette" aria-keyshortcuts="Control+z Meta+z Control+Shift+z Meta+Shift+z Control+y Control+c Control+v Control+Space Meta+Space Control+Shift+Space Meta+Shift+Space Alt+Enter Shift+=" style={{ '--columns': columns, '--rows': rows, '--outline-color': outlineColor, '--outer-border': settings.windowOutlineWidth === undefined ? undefined : `${settings.windowOutlineWidth}px`, '--swatch-border': settings.borderOutlineWidth === undefined ? undefined : `${settings.borderOutlineWidth}px` } as CSSProperties}
       onFocusCapture={event => {
         const swatch = event.target.closest('.swatch');
         if (swatch) mobileSelection.current = swatch.id.slice('swatch-'.length);
@@ -629,7 +631,7 @@ function App() {
           {addControl(index + 1)}
         </Fragment>;
       })}
-      {rows * columns > palette.length && <div className="empty-swatch" style={{ gridColumn: `span ${rows * columns - palette.length}`, color: outline.color === 'white' ? 'black' : 'white' }}>
+      {rows * columns > palette.length && <div className="empty-swatch" style={{ gridColumn: `span ${rows * columns - palette.length}`, color: ink(outlineColor.slice(1)) }}>
         {!dragging && editor.kind === 'closed' && <button className="add-color" aria-label="Add color in empty space" onClick={() => add(palette.length)}><Icon name="plus" /></button>}
       </div>}
       {!dragging && editor.kind === 'closed' && <div className="outline-zone outline-zone-top-left">
@@ -647,7 +649,7 @@ function App() {
       {!dragging && editor.kind === 'closed' && ['bottom-left', 'bottom-right'].map(corner => {
         const action = corner.endsWith('right') ? 'color' : 'mode';
         return <div key={corner} className={`outline-zone outline-zone-${corner}`}>
-          <button className="outline-button" tabIndex={0} aria-label={`${action === 'color' ? 'Change outline color' : 'Cycle outline mode'} (${outline.mode === 'none' ? 'edge to edge' : outline.mode === 'outer' ? 'outside border' : 'swatch borders'}, ${outline.color})`} aria-keyshortcuts={action === 'mode' ? 'Control+Space Meta+Space' : 'Control+Shift+Space Meta+Shift+Space'}
+          <button className="outline-button" tabIndex={0} aria-label={`${action === 'color' ? 'Change outline color' : 'Cycle outline mode'} (${outline.mode === 'none' ? 'edge to edge' : outline.mode === 'outer' ? 'outside border' : 'swatch borders'}, ${outlineColor.toUpperCase()})`} aria-keyshortcuts={action === 'mode' ? 'Control+Space Meta+Space' : 'Control+Shift+Space Meta+Shift+Space'}
             onPointerDown={event => event.preventDefault()} onClick={() => activateOutline(action)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
               {action === 'color' ? <path className="outline-ink" d="M12 3C10 6 5 10 5 14a7 7 0 0 0 14 0c0-4-5-8-7-11Z" />

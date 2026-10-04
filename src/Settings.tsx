@@ -24,6 +24,8 @@ const fields = [
   { key: 'minimumSwatchWidth', label: 'Minimum swatch width', min: 60, max: 1000, defaultValue: 100 },
   { key: 'windowOutlineWidth', label: 'Window outline width', min: 0, max: 120, defaultValue: undefined },
   { key: 'borderOutlineWidth', label: 'Border outline width', min: 0, max: 120, defaultValue: undefined },
+  { key: 'outlineColor1', label: 'Outline color 1', defaultValue: '#ffffff' },
+  { key: 'outlineColor2', label: 'Outline color 2', defaultValue: '#000000' },
 ] as const;
 
 const keyLabels = /^(Mac|iPhone|iPad|iPod)/.test(navigator.platform)
@@ -84,6 +86,8 @@ export type Settings = Readonly<{
   minimumSwatchWidth: number;
   windowOutlineWidth?: number;
   borderOutlineWidth?: number;
+  outlineColor1: string;
+  outlineColor2: string;
 }>;
 
 export function readSettings(): Settings {
@@ -91,10 +95,11 @@ export function readSettings(): Settings {
     const stored = JSON.parse(localStorage.getItem('palette:settings') ?? '{}');
     return Object.fromEntries(fields.map(field => {
       const value = stored?.[field.key];
+      if (!('min' in field)) return [field.key, typeof value === 'string' && /^#[\da-f]{6}$/i.test(value) ? value : field.defaultValue];
       return [field.key, Number.isInteger(value) && value > 0 && value >= field.min && value <= field.max ? value : field.defaultValue];
     })) as Settings;
   } catch {
-    return { minimumSwatchWidth: fields[0].defaultValue };
+    return Object.fromEntries(fields.map(field => [field.key, field.defaultValue])) as Settings;
   }
 }
 
@@ -161,7 +166,7 @@ export function SettingsPanel({ open, settings, onSave, onClose, palette, vision
           const data = new FormData(event.currentTarget);
           onSave(Object.fromEntries(fields.map(field => {
             const value = data.get(field.key);
-            return [field.key, value === '' ? field.defaultValue : Number(value)];
+            return [field.key, !('min' in field) ? value : value === '' ? field.defaultValue : Number(value)];
           })) as Settings);
         }} onReset={event => {
           event.preventDefault();
@@ -173,13 +178,13 @@ export function SettingsPanel({ open, settings, onSave, onClose, palette, vision
           <h2>Settings</h2>
           {fields.map(field => <label key={field.key} className="settings-field">
             <span>{field.label}</span><span className="settings-value">
-              <input name={field.key} type="number" min={field.min} max={field.max} step="1"
+              {'min' in field ? <><input name={field.key} type="number" min={field.min} max={field.max} step="1"
                 required={field.defaultValue !== undefined} defaultValue={settings[field.key]} placeholder="Auto"
                 onChange={event => {
                   if (field.defaultValue === undefined && event.currentTarget.valueAsNumber === 0) event.currentTarget.value = '';
                 }}
                 onFocus={event => event.currentTarget.select()} />
-              <span aria-hidden="true">px</span>
+              <span aria-hidden="true">px</span></> : <input name={field.key} type="color" defaultValue={settings[field.key]} />}
             </span>
           </label>)}
           <div className="settings-actions"><button type="reset">Reset</button>
