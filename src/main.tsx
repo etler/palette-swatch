@@ -1,4 +1,4 @@
-import { Fragment, StrictMode, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
+import { Fragment, StrictMode, useCallback, useEffect, useEffectEvent, useLayoutEffect, useReducer, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
 import { createRoot } from 'react-dom/client';
 import { clamp, colorInfo, coordinates, ink, parseHex, shades, simulateVision, toHex, type Mode, type VisionMode } from './color';
 import { historyReducer, insertionColor, move, parse, persist, type Palette, type Swatch } from './palette';
@@ -163,6 +163,10 @@ function App() {
     }
   }, [settings]);
   const paletteElement = useRef<HTMLElement>(null);
+  const infoScrollProgress = useRef(0);
+  const restoreInfoScroll = useCallback((element: HTMLDivElement | null) => {
+    if (element) element.scrollTop = infoScrollProgress.current * (element.scrollHeight - element.clientHeight);
+  }, []);
   const scrollTouchY = useRef<number | undefined>(undefined);
   useEffect(() => {
     const element = paletteElement.current;
@@ -603,7 +607,16 @@ function App() {
               </button>)}
               <button className="shade-back icon-button" aria-label="Cancel shades" onClick={dismiss}><Icon name="close" /></button>
             </div> : <div className="swatch-label">
-              {showInfo && <div className="swatch-info" role="region" aria-label={`${label} color information`} tabIndex={0}
+              {showInfo && <div ref={restoreInfoScroll} className="swatch-info" role="region" aria-label={`${label} color information`} tabIndex={0}
+                onScroll={event => {
+                  const source = event.currentTarget;
+                  const range = source.scrollHeight - source.clientHeight;
+                  if (range <= 0 || Math.abs(source.scrollTop - infoScrollProgress.current * range) <= 1) return;
+                  infoScrollProgress.current = clamp(source.scrollTop / range, 0, 1);
+                  paletteElement.current?.querySelectorAll<HTMLElement>('.swatch-info').forEach(info => {
+                    if (info !== source) info.scrollTop = infoScrollProgress.current * (info.scrollHeight - info.clientHeight);
+                  });
+                }}
                 onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()} onCopy={event => event.stopPropagation()}>
                 <dl>{colorInfo(hex).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
               </div>}

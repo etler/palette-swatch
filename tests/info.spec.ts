@@ -52,19 +52,22 @@ test('metadata follows live color edits, cancellation, undo, and new swatches', 
   await expect(page.locator('.swatch').filter({ has: page.getByText('2A9D8F', { exact: true }) }).locator('.swatch-info')).toContainText('42 157 143');
 });
 
-test('metadata scrolls independently with wheel and keyboard and text gestures do not edit swatches', async ({ page }) => {
+test('metadata scrolling syncs across swatches with wheel and keyboard without editing colors', async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 400 });
   await page.getByRole('button', { name: 'Color information', exact: true }).click();
   const info = page.getByRole('region', { name: 'Color 1 color information', exact: true });
   await info.hover();
   await page.mouse.wheel(0, 100);
   await expect.poll(() => info.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
-  expect(await page.locator('.swatch-info').nth(1).evaluate(element => element.scrollTop)).toBe(0);
-  await info.focus();
+  await expect.poll(() => page.locator('.swatch-info').evaluateAll(elements => {
+    const positions = elements.map(element => element.scrollTop / (element.scrollHeight - element.clientHeight));
+    return Math.max(...positions) - Math.min(...positions);
+  })).toBeLessThan(0.005);
+  await page.locator('.swatch-info').nth(1).focus();
   await page.keyboard.press('End');
-  await expect.poll(() => info.evaluate(element => Math.abs(element.scrollHeight - element.clientHeight - element.scrollTop))).toBeLessThanOrEqual(1);
+  await expect.poll(() => page.locator('.swatch-info').evaluateAll(elements => Math.max(...elements.map(element => Math.abs(element.scrollHeight - element.clientHeight - element.scrollTop))))).toBeLessThanOrEqual(1);
   await page.keyboard.press('Home');
-  await expect.poll(() => info.evaluate(element => element.scrollTop)).toBe(0);
+  await expect.poll(() => page.locator('.swatch-info').evaluateAll(elements => Math.max(...elements.map(element => element.scrollTop)))).toBe(0);
   await info.locator('dd').first().dblclick();
   expect(await page.evaluate(() => getSelection()?.toString())).not.toBe('');
   await page.keyboard.press('Control+c');

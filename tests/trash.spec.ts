@@ -111,6 +111,10 @@ for (const fraction of [0.05, 0.5, 0.95]) {
     }
     await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await expect.poll(() => info.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+    await expect.poll(() => page.locator('.swatch-info').evaluateAll(elements => {
+      const positions = elements.map(element => element.scrollTop / (element.scrollHeight - element.clientHeight));
+      return Math.max(...positions) - Math.min(...positions);
+    })).toBeLessThan(0.005);
     await expect(page.getByRole('img', { name: 'Delete swatch' })).toHaveCount(0);
     await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', 'E9C46A', 'F4A261', 'E76F51']);
     await context.close();
