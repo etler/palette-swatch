@@ -241,6 +241,19 @@ test('Enter accepts a pending numeric value', async ({ page }) => {
 
 test('Tab and Shift+Tab follow native controls, including the mode trigger', async ({ page }) => {
   await page.getByRole('button', { name: 'Edit Color 1 color 264653' }).click();
+  await expect(page.getByRole('textbox', { name: 'Hex color' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.getByRole('textbox', { name: 'Color Name' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.getByRole('button', { name: 'Apply color changes' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(page.getByRole('button', { name: 'Cancel color changes' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Apply color changes' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('textbox', { name: 'Color Name' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('textbox', { name: 'Hex color' })).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(page.getByRole('spinbutton', { name: 'Hue value' })).toBeFocused();
   await page.keyboard.press('Tab');

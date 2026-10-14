@@ -209,11 +209,11 @@ export function Picker({ name, initialFocus, onName, mode, values, original, onC
     }
   }}>
     <div className="picker-main">
-      <div className="popup-heading"><input className="picker-name" name="name" aria-label="Color Name" placeholder="Edit color" value={name} maxLength={80}
-        data-autofocus={initialFocus === 'name' ? '' : undefined} onFocus={event => event.currentTarget.select()} onChange={event => onName(event.currentTarget.value)} /><div className="picker-heading-actions">
+      <div className="popup-heading"><div className="picker-heading-actions">
         <button type="button" className="icon-button" aria-label="Cancel color changes" onClick={onCancel}><Icon name="close" /></button>
         <button type="submit" className="icon-button" aria-label="Apply color changes"><Icon name="check" /></button>
-      </div></div>
+      </div><input className="picker-name" name="name" aria-label="Color Name" placeholder="Edit color" value={name} maxLength={80}
+        data-autofocus={initialFocus === 'name' ? '' : undefined} onFocus={event => event.currentTarget.select()} onChange={event => onName(event.currentTarget.value)} /></div>
       {(mode === 'HSB' || mode === 'HSL') && <Plane mode={mode} values={values} original={previous} onChange={onChange} />}
       <div className="hex-field"><span className="color-chip" style={{ background: `#${hex}` }} /><label htmlFor="hex-input">HEX</label>
         <input key={hex} id="hex-input" name="hex" data-autofocus={initialFocus === 'hex' ? '' : undefined} defaultValue={hex} required pattern="#?[A-Fa-f0-9]{6}" maxLength={7} aria-label="Hex color" spellCheck={false} onBlur={event => { const parsed = parseHex(event.currentTarget.value); if (parsed) onChange(coordinates(parsed, mode)); }} />
