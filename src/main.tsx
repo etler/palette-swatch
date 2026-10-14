@@ -694,12 +694,12 @@ function App() {
     }} />
     </div>
     {editor.kind === 'color' && <Popup key={editor.swatch.id} x={editor.x} label="Color picker" onClose={close} onCancel={dismiss}>
-      <Picker name={editor.name} initialFocus={editor.focus} onName={name => setEditor({ ...editor, name })} onCancel={dismiss} bookmarked={bookmarks.has(toHex(mode, editor.values))} onBookmark={hex => {
+      <Picker name={editor.name} initialFocus={editor.focus} onName={name => setEditor({ ...editor, name })} onCancel={dismiss} bookmarks={bookmarks} onBookmark={(hex, name) => {
         setBookmarks(current => current.has(hex)
           ? new Map([...current].filter(([key]) => key !== hex))
-          : new Map([...current, [hex, editor.name.trim()]]));
+          : new Map([...current, [hex, name.trim()]]));
       }} mode={mode} values={editor.values} original={editor.swatch.hex} onAccept={values => { saveColor(toHex(mode, values)); dismiss(); }} notify={setNotice}
-        onChange={values => setEditor({ ...editor, values })}
+        onChange={(values, name = editor.name) => setEditor({ ...editor, values, name })}
         onMode={next => { setEditor({ ...editor, values: coordinates(toHex(mode, editor.values), next) }); setMode(next); }}
         onShades={(channel, values) => {
           setEditor({ kind: 'shades', swatch: editor.swatch, name: editor.name, focus: editor.focus, values, channel });

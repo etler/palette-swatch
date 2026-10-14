@@ -113,6 +113,7 @@ test('hover and keyboard removal update bookmarks without changing the palette',
   await page.getByRole('button', { name: 'Edit Ocean color 264653' }).click();
   await expect(page.getByRole('button', { name: 'Bookmark swatch', exact: true })).toHaveAttribute('aria-pressed', 'false');
   await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Edit Ocean color 264653' })).toBeFocused();
   await page.getByRole('tab', { name: 'Bookmarks', exact: true }).focus();
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');

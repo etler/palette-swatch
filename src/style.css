@@ -70,7 +70,7 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .delete-zone { position: absolute; left: 0; right: 0; height: var(--delete-zone-height); display: grid; place-items: center; }
 .delete-zone-top { top: 0; }
 .delete-zone-bottom { bottom: 0; }
-.popup { --popup-bottom: clamp(12px, 30vh, 340px); position: fixed; inset: auto; left: clamp(12px, calc(var(--anchor-x) - 170px), calc(100vw - 352px)); bottom: var(--popup-bottom); width: 340px; max-width: calc(100vw - 24px); max-height: calc(100dvh - var(--popup-bottom) - 12px); margin: 0; padding: 0; overflow-y: auto; border: 1px solid #ffffffb3; border-radius: 16px; color: #181b18; background: #fafbf8; box-shadow: 0 16px 64px #0003, 0 2px 8px #0001; }
+.popup { --popup-bottom: clamp(12px, 30vh, 340px); position: fixed; inset: auto; left: clamp(12px, calc(var(--anchor-x) - 170px), calc(100vw - 352px)); bottom: var(--popup-bottom); width: 340px; max-width: calc(100vw - 24px); max-height: min(480px, calc(100dvh - var(--popup-bottom) - 12px)); margin: 0; padding: 0; overflow-y: auto; border: 1px solid #ffffffb3; border-radius: 16px; color: #181b18; background: #fafbf8; box-shadow: 0 16px 64px #0003, 0 2px 8px #0001; }
 .popup:popover-open { animation: appear 160ms ease-out; }
 .settings-panel { --sidebar-width: clamp(220px, 50vw, 340px); flex: 0 0 0px; min-width: 0; height: 100dvh; overflow: clip; visibility: hidden; color: #181b18; background: #fafbf8; transition: flex-basis 300ms ease, visibility 0s 300ms; }
 .settings-panel[data-open="true"] { flex-basis: var(--sidebar-width); visibility: visible; transition-delay: 0s; }
@@ -208,6 +208,18 @@ svg { width: 20px; height: 20px; display: block; flex-shrink: 0; }
 .picker-name { order: -1; flex: 1; min-width: 0; margin-left: -7px; margin-right: 6px; padding: 5px 6px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: inherit; font: inherit; }
 .picker-name::placeholder { color: inherit; opacity: 1; }
 .picker-name:focus { border-color: #475c46; outline: none; }
+.popup:has(.color-search) { height: 100dvh; }
+.search-header { position: sticky; top: 0; z-index: 1; padding: 16px 20px 12px; background: #fafbf8; border-bottom: 1px solid #e6e8e1; }
+.search-header input { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid #dedfd9; border-radius: 8px; background: white; color: inherit; font-size: 16px; }
+.search-back { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 38px; font-size: 14px; text-align: left; }
+.search-families { padding: 8px; }
+.search-status { padding: 12px 20px; font-size: 13px; }
+.search-results { display: grid; gap: 8px; padding: 12px; }
+.search-swatch { position: relative; border-radius: 8px; font-size: 14px; }
+.search-select { display: block; width: 100%; min-height: 44px; padding: 12px 48px 12px 12px; border-radius: inherit; text-align: left; }
+.search-swatch > button:focus-visible { outline: 2px solid currentColor; outline-offset: -5px; }
+.search-bookmark { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); }
+.search-bookmark:hover { background: color-mix(in srgb, currentColor 15%, transparent); }
 .save-button { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 16px; padding: 11px 13px; background: #242d22; color: white; border-radius: 8px; font-size: 12px; font-weight: 550; }
 .shade-list { height: 100%; display: flex; flex-direction: column; cursor: default; }
 .shade { flex: 1; min-height: 0; width: 100%; background: var(--color); color: var(--ink); position: relative; display: grid; place-items: center; padding: 0; }

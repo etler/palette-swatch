@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
-import { atFraction, channels, clamp, coordinates, fraction, modes, parseHex, replace, toHex, type Mode } from './color';
+import { atFraction, channels, clamp, coordinates, fraction, ink, modes, parseHex, replace, toHex, type Mode } from './color';
+import { loadColorCatalog, searchCatalog, type CatalogColor } from './color-catalog';
 
-export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' | 'eye' | 'bookmark' | 'download' | 'export' | 'print' | 'undo' | 'redo' | 'trash' | 'fullscreen' | 'exit-fullscreen' }) {
+export function Icon({ name }: { readonly name: 'plus' | 'close' | 'shades' | 'copy' | 'dropper' | 'back' | 'check' | 'chevron' | 'menu' | 'settings' | 'keyboard' | 'eye' | 'bookmark' | 'download' | 'export' | 'print' | 'undo' | 'redo' | 'trash' | 'fullscreen' | 'exit-fullscreen' | 'search' }) {
   const paths = {
+    search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></>,
     fullscreen: <path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5" />,
     'exit-fullscreen': <path d="M3 8h5V3M21 8h-5V3M8 21v-5H3M16 21v-5h5" />,
     trash: <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />,
@@ -108,15 +110,75 @@ function pickerControls(form: HTMLFormElement) {
   return Array.from(form.querySelectorAll<HTMLInputElement>('input[name="hex"], input[type="range"]'));
 }
 
-export function Picker({ name, initialFocus, onName, mode, values, original, onChange, onMode, onShades, onAccept, onCancel, notify, bookmarked, onBookmark }: {
+function ColorSearch({ onSelect, onBack, bookmarks, onBookmark }: {
+  readonly onSelect: (color: CatalogColor) => void;
+  readonly onBack: () => void;
+  readonly bookmarks: ReadonlyMap<string, string>;
+  readonly onBookmark: (hex: string, name: string) => void;
+}) {
+  const [catalog, setCatalog] = useState<readonly CatalogColor[] | 'loading' | 'error'>('loading');
+  const [filter, setFilter] = useState<Readonly<{ kind: 'query' | 'family'; value: string }>>({ kind: 'query', value: '' });
+  const header = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (catalog !== 'loading') return;
+    const controller = new AbortController();
+    loadColorCatalog(controller.signal).then(colors => {
+      if (!controller.signal.aborted) setCatalog(colors);
+    }).catch(() => {
+      if (!controller.signal.aborted) setCatalog('error');
+    });
+    return () => controller.abort();
+  }, [catalog]);
+  useLayoutEffect(() => {
+    const popup = header.current?.closest('.popup');
+    if (popup) popup.scrollTop = 0;
+  }, [filter]);
+  useLayoutEffect(() => {
+    if (filter.kind === 'family') header.current?.querySelector<HTMLButtonElement>('.search-back')?.focus({ preventScroll: true });
+    else if (!matchMedia('(hover: none)').matches) header.current?.querySelector('input')?.focus({ preventScroll: true });
+  }, [filter.kind]);
+  const colors = typeof catalog === 'string' ? [] : catalog;
+  const query = filter.value.trim().toLowerCase();
+  const results = filter.kind === 'family'
+    ? colors.filter(color => color.colorFamilyNames.includes(filter.value))
+    : searchCatalog(colors, query);
+  const familyOrder = ['Neutral', 'Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple', 'White & Pastel'];
+  const availableFamilies = [...new Set(colors.flatMap(color => color.colorFamilyNames))]
+    .filter(family => !['Living Well', 'Emerald Designer Edition', 'Designer Color Collection'].includes(family));
+  const families = [
+    ...familyOrder.filter(family => availableFamilies.includes(family)),
+    ...availableFamilies.filter(family => !familyOrder.includes(family)).sort(),
+  ];
+  return <div className="color-search">
+    <div className="search-header" ref={header}>
+      <div className="popup-heading"><span>Search colors</span><button type="button" className="icon-button" aria-label="Back to picker" onClick={onBack}><Icon name="back" /></button></div>
+      {filter.kind === 'family'
+        ? <button type="button" className="search-back" onClick={() => setFilter({ kind: 'query', value: '' })}><Icon name="back" />{filter.value}</button>
+        : <input type="search" aria-label="Search color names" placeholder="Search colors" value={filter.value} onChange={event => setFilter({ kind: 'query', value: event.currentTarget.value })} />}
+    </div>
+    {catalog === 'loading' ? <p className="search-status" role="status">Loading colors…</p>
+      : catalog === 'error' ? <div className="search-status"><p role="alert">Unable to load colors.</p><button type="button" className="mode-option" onClick={() => setCatalog('loading')}>Retry</button></div>
+      : filter.kind === 'query' && !query ? <div className="search-families">{families.map(family => <button type="button" className="mode-option" key={family} onClick={() => setFilter({ kind: 'family', value: family })}>{family}</button>)}</div>
+      : <div className="search-results" aria-label="Color results">{results.length === 0 ? <p className="search-status" role="status">No colors found.</p> : results.map(color => {
+        const hex = color.rgb.toString(16).padStart(6, '0').toUpperCase();
+        return <div className="search-swatch" key={color.colorNumber} style={{ background: `#${hex}`, color: ink(hex) }}>
+          <button type="button" className="search-select" onClick={() => onSelect(color)}>{color.name}</button>
+          <button type="button" className="icon-button bookmark-toggle search-bookmark" aria-label={`Bookmark ${color.name}`} aria-pressed={bookmarks.has(hex)}
+            title={bookmarks.has(hex) ? 'Remove bookmark' : 'Save bookmark'} onClick={() => onBookmark(hex, color.name)}><Icon name="bookmark" /></button>
+        </div>;
+      })}</div>}
+  </div>;
+}
+
+export function Picker({ name, initialFocus, onName, mode, values, original, onChange, onMode, onShades, onAccept, onCancel, notify, bookmarks, onBookmark }: {
   readonly name: string; readonly initialFocus: 'hex' | 'name'; readonly onName: (name: string) => void;
   readonly mode: Mode; readonly values: readonly number[]; readonly original: string;
   readonly onCancel: () => void;
-  readonly bookmarked: boolean; readonly onBookmark: (hex: string) => void;
-  readonly onChange: (values: readonly number[]) => void; readonly onMode: (mode: Mode) => void;
+  readonly bookmarks: ReadonlyMap<string, string>; readonly onBookmark: (hex: string, name: string) => void;
+  readonly onChange: (values: readonly number[], name?: string) => void; readonly onMode: (mode: Mode) => void;
   readonly onShades: (channel: number, values: readonly number[]) => void; readonly onAccept: (values: readonly number[]) => void; readonly notify: (message: string) => void;
 }) {
-  const [view, setView] = useState<{ readonly screen: 'picker' | 'modes'; readonly focus: 'first' | 'last' | 'default' }>({ screen: 'picker', focus: 'default' });
+  const [view, setView] = useState<{ readonly screen: 'picker' | 'modes' | 'search'; readonly focus: 'first' | 'last' | 'default' }>({ screen: 'picker', focus: 'default' });
   const form = useRef<HTMLFormElement>(null);
   const hex = toHex(mode, values);
   const previous = coordinates(original, mode);
@@ -162,6 +224,10 @@ export function Picker({ name, initialFocus, onName, mode, values, original, onC
       if (!(error instanceof DOMException && error.name === 'AbortError')) notify('Screen sampling is unavailable. Check browser permissions.');
     }
   };
+  if (view.screen === 'search') return <ColorSearch bookmarks={bookmarks} onBookmark={onBookmark} onBack={() => setView({ screen: 'picker', focus: 'default' })} onSelect={color => {
+    onChange(coordinates(color.rgb.toString(16).padStart(6, '0'), mode), color.name);
+    setView({ screen: 'picker', focus: 'default' });
+  }} />;
   if (view.screen === 'modes') return <div className="mode-menu" onKeyDown={event => {
     if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
     event.preventDefault();
@@ -233,9 +299,10 @@ export function Picker({ name, initialFocus, onName, mode, values, original, onC
       </div>)}</div>
     </div>
     <div className="picker-footer"><button type="button" className="mode-trigger" onClick={() => setView({ screen: 'modes', focus: 'default' })} aria-label="Change color mode">{mode}<Icon name="chevron" /></button>
-      <div className="footer-actions">{window.EyeDropper && <button type="button" className="icon-button" aria-label="Pick a color from your screen" onClick={eyeDropper}><Icon name="dropper" /></button>}
+      <div className="footer-actions"><button type="button" className="icon-button" aria-label="Search colors" onClick={() => setView({ screen: 'search', focus: 'default' })}><Icon name="search" /></button>
+        {window.EyeDropper && <button type="button" className="icon-button" aria-label="Pick a color from your screen" onClick={eyeDropper}><Icon name="dropper" /></button>}
         <button type="button" className="icon-button" aria-label="Copy hex code" onClick={async () => { try { await navigator.clipboard.writeText(hex); notify(`Copied ${hex}`); } catch { notify('Copy unavailable. Select the HEX field and copy it.'); } }}><Icon name="copy" /></button>
-        <button type="button" className="icon-button bookmark-toggle" aria-label="Bookmark swatch" aria-pressed={bookmarked} title={bookmarked ? 'Remove bookmark' : 'Save bookmark'} onClick={() => onBookmark(hex)}><Icon name="bookmark" /></button></div>
+        <button type="button" className="icon-button bookmark-toggle" aria-label="Bookmark swatch" aria-pressed={bookmarks.has(hex)} title={bookmarks.has(hex) ? 'Remove bookmark' : 'Save bookmark'} onClick={() => onBookmark(hex, name)}><Icon name="bookmark" /></button></div>
     </div>
   </form>;
 }
