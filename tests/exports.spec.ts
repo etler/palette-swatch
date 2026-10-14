@@ -78,6 +78,8 @@ for (const width of [1440, 390, 320]) {
     await page.getByRole('button', { name: 'Menu', exact: true }).click();
     await page.getByRole('tab', { name: 'Bookmarks', exact: true }).click();
     await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Search', exact: true })).toBeFocused();
+    await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('tab', { name: 'Export', exact: true })).toBeFocused();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('button', { name: 'Close menu' })).toBeFocused();

@@ -124,6 +124,9 @@ function App() {
   const mobileSelection = useRef(history.present[0].id);
   const lastTouchTap = useRef<Readonly<{ id: string; time: number; x: number; y: number }> | undefined>(undefined);
   const [bookmarks, setBookmarks] = useBookmarks(setNotice);
+  const toggleBookmark = (hex: string, name: string) => setBookmarks(current => current.has(hex)
+    ? new Map([...current].filter(([key]) => key !== hex))
+    : new Map([...current, [hex, name.trim()]]));
   const [keyboard, setKeyboard] = useState(false);
   const [showInfo, setShowInfo] = useState(() => {
     try {
@@ -685,7 +688,7 @@ function App() {
     {drag?.pointerType === 'touch' && palette.length > 1 && <div ref={trashTarget} className="trash-target" role="img" aria-label="Delete swatch"
       data-active={drag.overTrash} style={{ visibility: dragging && drag.travel >= touchDragThreshold ? 'visible' : 'hidden' }}><Icon name="trash" /></div>}
     </div>
-    <SettingsPanel onSavePalette={() => setBookmarks(current => new Map([...current, ...previewPalette.map(({ hex, name }) => [hex, name] as const)]))} onAddBookmark={(hex, name) => {
+    <SettingsPanel onBookmark={toggleBookmark} onSavePalette={() => setBookmarks(current => new Map([...current, ...previewPalette.map(({ hex, name }) => [hex, name] as const)]))} onAddColor={(hex, name) => {
       close();
       commit([...previewPalette, { id: crypto.randomUUID(), hex, name }]);
     }} bookmarks={bookmarks} onRemoveBookmark={hex => setBookmarks(current => new Map([...current].filter(([key]) => key !== hex)))} palette={dragging ? move(previewPalette, drag.id, target) : previewPalette} vision={vision} onVision={setVision} open={settingsOpen} settings={settings} onSave={setSettings} onClose={() => {
@@ -694,11 +697,8 @@ function App() {
     }} />
     </div>
     {editor.kind === 'color' && <Popup key={editor.swatch.id} x={editor.x} label="Color picker" onClose={close} onCancel={dismiss}>
-      <Picker name={editor.name} initialFocus={editor.focus} onName={name => setEditor({ ...editor, name })} onCancel={dismiss} bookmarks={bookmarks} onBookmark={(hex, name) => {
-        setBookmarks(current => current.has(hex)
-          ? new Map([...current].filter(([key]) => key !== hex))
-          : new Map([...current, [hex, name.trim()]]));
-      }} mode={mode} values={editor.values} original={editor.swatch.hex} onAccept={values => { saveColor(toHex(mode, values)); dismiss(); }} notify={setNotice}
+      <Picker name={editor.name} initialFocus={editor.focus} onName={name => setEditor({ ...editor, name })} onCancel={dismiss} bookmarks={bookmarks} onBookmark={toggleBookmark}
+        mode={mode} values={editor.values} original={editor.swatch.hex} onAccept={values => { saveColor(toHex(mode, values)); dismiss(); }} notify={setNotice}
         onChange={(values, name = editor.name) => setEditor({ ...editor, values, name })}
         onMode={next => { setEditor({ ...editor, values: coordinates(toHex(mode, editor.values), next) }); setMode(next); }}
         onShades={(channel, values) => {

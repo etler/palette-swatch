@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Icon } from './Picker';
+import { ColorSearch, Icon } from './Picker';
 import { Accessibility } from './Accessibility';
 import { Bookmarks } from './Bookmarks';
 import { Exports } from './Exports';
@@ -16,6 +16,7 @@ const tabs = [
   { id: 'settings', label: 'Settings', icon: 'settings' },
   { id: 'accessibility', label: 'Accessibility', icon: 'eye' },
   { id: 'bookmarks', label: 'Bookmarks', icon: 'bookmark' },
+  { id: 'search', label: 'Search', icon: 'search' },
   { id: 'export', label: 'Export', icon: 'export' },
   { id: 'keyboard', label: 'Keyboard shortcuts', icon: 'keyboard' },
 ] as const;
@@ -103,10 +104,11 @@ export function readSettings(): Settings {
   }
 }
 
-export function SettingsPanel({ open, settings, onSave, onClose, palette, vision, onVision, bookmarks, onRemoveBookmark, onAddBookmark, onSavePalette }: {
+export function SettingsPanel({ open, settings, onSave, onClose, palette, vision, onVision, bookmarks, onRemoveBookmark, onAddColor, onBookmark, onSavePalette }: {
   readonly bookmarks: ReadonlyMap<string, string>;
   readonly onRemoveBookmark: (hex: string) => void;
-  readonly onAddBookmark: (hex: string, name: string) => void;
+  readonly onAddColor: (hex: string, name: string) => void;
+  readonly onBookmark: (hex: string, name: string) => void;
   readonly onSavePalette: () => void;
   readonly palette: Palette;
   readonly vision: VisionMode;
@@ -192,7 +194,11 @@ export function SettingsPanel({ open, settings, onSave, onClose, palette, vision
           </div>
         </form>
         <section id="bookmarks-content" role="tabpanel" aria-labelledby="bookmarks-tab" hidden={tab !== 'bookmarks'} tabIndex={0} className="bookmarks-panel">
-          <Bookmarks bookmarks={bookmarks} onRemove={onRemoveBookmark} onAdd={onAddBookmark} onSavePalette={onSavePalette} />
+          <Bookmarks bookmarks={bookmarks} onRemove={onRemoveBookmark} onAdd={onAddColor} onSavePalette={onSavePalette} />
+        </section>
+        <section id="search-content" role="tabpanel" aria-labelledby="search-tab" hidden={tab !== 'search'}>
+          {open && tab === 'search' && <ColorSearch bookmarks={bookmarks} onBookmark={onBookmark}
+            onSelect={color => onAddColor(color.rgb.toString(16).padStart(6, '0').toUpperCase(), color.name)} />}
         </section>
         <section id="accessibility-content" role="tabpanel" aria-labelledby="accessibility-tab" hidden={tab !== 'accessibility'} className="accessibility-panel">
           <Accessibility palette={palette} vision={vision} onVision={onVision} />

@@ -110,9 +110,9 @@ function pickerControls(form: HTMLFormElement) {
   return Array.from(form.querySelectorAll<HTMLInputElement>('input[name="hex"], input[type="range"]'));
 }
 
-function ColorSearch({ onSelect, onBack, bookmarks, onBookmark }: {
+export function ColorSearch({ onSelect, onBack, bookmarks, onBookmark }: {
   readonly onSelect: (color: CatalogColor) => void;
-  readonly onBack: () => void;
+  readonly onBack?: () => void;
   readonly bookmarks: ReadonlyMap<string, string>;
   readonly onBookmark: (hex: string, name: string) => void;
 }) {
@@ -130,12 +130,12 @@ function ColorSearch({ onSelect, onBack, bookmarks, onBookmark }: {
     return () => controller.abort();
   }, [catalog]);
   useLayoutEffect(() => {
-    const popup = header.current?.closest('.popup');
-    if (popup) popup.scrollTop = 0;
+    const container = header.current?.closest('.popup, .sidebar-body');
+    if (container) container.scrollTop = 0;
   }, [filter]);
   useLayoutEffect(() => {
     if (filter.kind === 'family') header.current?.querySelector<HTMLButtonElement>('.search-back')?.focus({ preventScroll: true });
-    else if (!matchMedia('(hover: none)').matches) header.current?.querySelector('input')?.focus({ preventScroll: true });
+    else if (!matchMedia('(hover: none)').matches && !document.activeElement?.closest('[role="tab"]')) header.current?.querySelector('input')?.focus({ preventScroll: true });
   }, [filter.kind]);
   const colors = typeof catalog === 'string' ? [] : catalog;
   const query = filter.value.trim().toLowerCase();
@@ -151,7 +151,7 @@ function ColorSearch({ onSelect, onBack, bookmarks, onBookmark }: {
   ];
   return <div className="color-search">
     <div className="search-header" ref={header}>
-      <div className="popup-heading"><span>Search colors</span><button type="button" className="icon-button" aria-label="Back to picker" onClick={onBack}><Icon name="back" /></button></div>
+      <div className="popup-heading"><span>Search colors</span>{onBack && <button type="button" className="icon-button" aria-label="Back to picker" onClick={onBack}><Icon name="back" /></button>}</div>
       {filter.kind === 'family'
         ? <button type="button" className="search-back" onClick={() => setFilter({ kind: 'query', value: '' })}><Icon name="back" />{filter.value}</button>
         : <input type="search" aria-label="Search color names" placeholder="Search colors" value={filter.value} onChange={event => setFilter({ kind: 'query', value: event.currentTarget.value })} />}

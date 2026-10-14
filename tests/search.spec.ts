@@ -157,6 +157,96 @@ test('shows failure and retries without closing the picker', async ({ page }) =>
   await expect(page.locator('.search-swatch')).toHaveCount(36);
 });
 
+test('sidebar search appends colors, shares bookmarks and cache, and preserves the search for repeated additions', async ({ page }) => {
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  const tab = page.getByRole('tab', { name: 'Search', exact: true });
+  await tab.click();
+  await expect(tab).toBeFocused();
+  const panel = page.getByRole('tabpanel', { name: 'Search', exact: true });
+  await expect(panel.getByRole('button', { name: 'Back to picker' })).toHaveCount(0);
+  const input = panel.getByRole('searchbox');
+  await input.fill('sky night');
+  await panel.getByRole('button', { name: 'Bookmark Night Sky', exact: true }).click();
+  await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F']);
+  const result = panel.getByRole('button', { name: 'Night Sky', exact: true });
+  await result.click();
+  await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', '001122']);
+  await expect(page.locator('.name-button')).toHaveText(['Ocean', 'Add Name', 'Night Sky']);
+  await expect(input).toHaveValue('sky night');
+  await expect(result).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', '001122', '001122']);
+  await page.getByRole('tab', { name: 'Bookmarks', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Add Night Sky 001122 to palette' })).toBeVisible();
+  await page.getByRole('button', { name: 'Close menu' }).click();
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', '001122']);
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F']);
+  await page.route(endpoint, () => { throw new Error('Picker must reuse the sidebar catalog cache'); });
+  await openSearch(page);
+  await page.getByRole('dialog').getByRole('searchbox').fill('sky');
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Bookmark Night Sky', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('dialog').getByRole('button', { name: 'Night Sky', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply color changes', exact: true }).click();
+  await expect(page.locator('.hex-button')).toHaveText(['001122', '2A9D8F']);
+});
+
+test('sidebar search remembers its tab and keeps category navigation sticky', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 600 });
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  const tab = page.getByRole('tab', { name: 'Search', exact: true });
+  await page.getByRole('tab', { name: 'Bookmarks', exact: true }).click();
+  await page.keyboard.press('ArrowRight');
+  await expect(tab).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('tab', { name: 'Export', exact: true })).toBeFocused();
+  await tab.click();
+  const panel = page.getByRole('tabpanel', { name: 'Search', exact: true });
+  await panel.getByRole('button', { name: 'Blue', exact: true }).click();
+  const back = panel.getByRole('button', { name: 'Blue', exact: true });
+  const y = (await back.boundingBox())!.y;
+  await page.locator('.sidebar-body').evaluate(element => { element.scrollTop = 500; });
+  expect((await back.boundingBox())!.y).toBeCloseTo(y, 0);
+  await back.click();
+  await expect(panel.getByRole('searchbox')).toBeFocused();
+  expect(await page.locator('.sidebar-body').evaluate(element => element.scrollTop)).toBe(0);
+  const header = await page.locator('.sidebar-header').boundingBox();
+  const tabs = await page.getByRole('tab').all();
+  for (const button of tabs) {
+    const bounds = await button.boundingBox();
+    expect(bounds!.x).toBeGreaterThanOrEqual(header!.x);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(header!.x + header!.width);
+    expect(bounds!.y).toBe((await tabs[0].boundingBox())!.y);
+  }
+  await page.reload();
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  await expect(panel.getByRole('button', { name: 'Blue', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Close menu' }).click();
+  await page.getByRole('button', { name: 'Menu', exact: true }).click();
+  await expect(tab).toBeFocused();
+});
+
+test('mobile sidebar search appends on tap without focusing the search input', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  await page.route(endpoint, route => route.fulfill({ json: colors }));
+  await page.goto('/#264653#2A9D8F');
+  await page.locator('.swatch').first().tap({ position: { x: 60, y: 100 } });
+  await expect(page.getByRole('button', { name: 'Menu', exact: true })).toHaveCSS('opacity', '1');
+  await page.getByRole('button', { name: 'Menu', exact: true }).tap();
+  await page.getByRole('tab', { name: 'Search', exact: true }).tap();
+  const panel = page.getByRole('tabpanel', { name: 'Search', exact: true });
+  await expect(panel.getByRole('searchbox')).not.toBeFocused();
+  await expect(page.getByRole('tab', { name: 'Keyboard shortcuts', exact: true })).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Blue', exact: true }).tap();
+  await panel.getByRole('button', { name: 'Night Sky', exact: true }).tap();
+  await expect(page.locator('.hex-button')).toHaveText(['264653', '2A9D8F', '001122']);
+  await expect(panel).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close menu', exact: true })).toBeInViewport({ ratio: 1 });
+  await context.close();
+});
+
 test('mobile search does not autofocus inputs and the family list scrolls in landscape', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();

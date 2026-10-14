@@ -15,7 +15,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
     const panel = page.getByRole('complementary', { name: 'Palette menu' });
     await expect(panel).toBeVisible();
     await expect(button).toHaveAttribute('aria-expanded', 'true');
-    await expect(panel).toHaveCSS('width', `${Math.max(220, Math.min(340, viewport.width / 2))}px`);
+    await expect(panel).toHaveCSS('width', `${Math.max(252, Math.min(340, viewport.width / 2))}px`);
     const bounds = await panel.boundingBox();
     const palette = await page.getByRole('main').boundingBox();
     expect(bounds!.x).toBe(palette!.width);
